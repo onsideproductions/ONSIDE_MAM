@@ -1,5 +1,4 @@
 import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import pg from 'pg';
 import { env } from './config.js';
 
@@ -14,7 +13,7 @@ export function getAuth() {
     });
 
     _auth = betterAuth({
-      database: drizzleAdapter(pool, { provider: 'pg' }),
+      database: pool,
       secret: config.AUTH_SECRET,
       baseURL: config.AUTH_URL,
       emailAndPassword: {
