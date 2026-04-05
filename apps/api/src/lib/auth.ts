@@ -3,7 +3,8 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import pg from 'pg';
 import { env } from './config.js';
 
-let _auth: ReturnType<typeof betterAuth> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _auth: any = null;
 
 export function getAuth() {
   if (!_auth) {

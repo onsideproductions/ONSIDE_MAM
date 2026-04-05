@@ -16,8 +16,8 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
   const config = env();
 
   const s3Store = new S3Store({
-    bucket: config.WASABI_BUCKET,
     s3ClientConfig: {
+      bucket: config.WASABI_BUCKET,
       region: config.WASABI_REGION,
       endpoint: config.WASABI_ENDPOINT,
       credentials: {

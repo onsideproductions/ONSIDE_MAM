@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { getAuth } from '../lib/auth.js';
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
-  const auth = getAuth();
+  const auth = getAuth()!;
 
   // Forward all auth requests to better-auth
   app.all('/*', async (request, reply) => {
