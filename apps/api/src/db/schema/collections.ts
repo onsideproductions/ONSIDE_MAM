@@ -7,8 +7,8 @@ import {
   index,
 } from 'drizzle-orm/pg-core';
 import { nanoid } from 'nanoid';
-import { users } from './users';
-import { assets } from './assets';
+import { users } from './users.js';
+import { assets } from './assets.js';
 
 export const collections = pgTable(
   'collections',

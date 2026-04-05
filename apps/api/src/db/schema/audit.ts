@@ -1,6 +1,6 @@
 import { pgTable, text, varchar, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
 import { nanoid } from 'nanoid';
-import { users } from './users';
+import { users } from './users.js';
 
 export const auditLog = pgTable(
   'audit_log',

@@ -10,7 +10,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { users } from './users';
+import { users } from './users.js';
 
 export const assets = pgTable(
   'assets',
