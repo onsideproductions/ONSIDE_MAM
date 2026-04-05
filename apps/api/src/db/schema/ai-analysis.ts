@@ -1,6 +1,6 @@
 import { pgTable, text, varchar, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
 import { nanoid } from 'nanoid';
-import { assets } from './assets.js';
+import { assets } from './assets';
 
 export const aiAnalysis = pgTable(
   'ai_analysis',
