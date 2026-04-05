@@ -1,5 +1,10 @@
 // Entry point to start all workers in a single process
-import 'dotenv/config';
+import { config } from 'dotenv';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(__dirname, '../../../../.env') });
 
 console.log('Starting all ONSIDE MAM workers...');
 

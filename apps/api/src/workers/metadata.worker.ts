@@ -1,4 +1,4 @@
-import 'dotenv/config';
+
 import { eq } from 'drizzle-orm';
 import { getDb, assets } from '../db/index.js';
 import { probe } from '../lib/ffmpeg.js';

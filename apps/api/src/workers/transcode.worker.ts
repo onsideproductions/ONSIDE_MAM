@@ -1,4 +1,4 @@
-import 'dotenv/config';
+
 import { eq } from 'drizzle-orm';
 import { getDb, assets } from '../db/index.js';
 import { transcodeToProxy, transcodeToHLS } from '../lib/ffmpeg.js';

@@ -1,4 +1,4 @@
-import 'dotenv/config';
+
 import { eq } from 'drizzle-orm';
 import { getDb, assets, aiAnalysis, tags, assetTags } from '../db/index.js';
 import { analyzeVideoFrames } from '../lib/gemini.js';
