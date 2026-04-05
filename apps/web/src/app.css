@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+
+:root {
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-surface: #ffffff;
+  --color-surface-dark: #1e1e2e;
+  --color-muted: #64748b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #1e1e2e;
+    --color-muted: #94a3b8;
+  }
+}

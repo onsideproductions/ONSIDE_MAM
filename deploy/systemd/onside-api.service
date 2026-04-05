@@ -1,0 +1,26 @@
+[Unit]
+Description=ONSIDE MAM API
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=onside
+Group=onside
+WorkingDirectory=/opt/onside-mam/apps/api
+ExecStart=/usr/bin/node dist/server.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/onside-mam/.env
+
+# Resource limits
+MemoryMax=1G
+CPUQuota=100%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=onside-api
+
+[Install]
+WantedBy=multi-user.target

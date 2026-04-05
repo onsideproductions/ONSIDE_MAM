@@ -1,0 +1,26 @@
+[Unit]
+Description=ONSIDE MAM Worker (transcode, thumbnail, AI analysis)
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=onside
+Group=onside
+WorkingDirectory=/opt/onside-mam/apps/api
+ExecStart=/usr/bin/node dist/workers/all.js
+Restart=on-failure
+RestartSec=10
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/onside-mam/.env
+
+# Workers need more CPU for FFmpeg transcoding
+MemoryMax=4G
+CPUQuota=200%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=onside-worker
+
+[Install]
+WantedBy=multi-user.target

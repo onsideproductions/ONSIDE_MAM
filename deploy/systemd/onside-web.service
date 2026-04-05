@@ -1,0 +1,25 @@
+[Unit]
+Description=ONSIDE MAM Web (SvelteKit)
+After=network.target onside-api.service
+
+[Service]
+Type=simple
+User=onside
+Group=onside
+WorkingDirectory=/opt/onside-mam/apps/web
+ExecStart=/usr/bin/node build/index.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PORT=3000
+EnvironmentFile=/opt/onside-mam/.env
+
+MemoryMax=512M
+CPUQuota=50%
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=onside-web
+
+[Install]
+WantedBy=multi-user.target
