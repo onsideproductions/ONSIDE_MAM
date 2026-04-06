@@ -28,7 +28,7 @@ export async function analyzeVideoFrames(
   framePaths: string[]
 ): Promise<GeminiAnalysisResult> {
   const genAI = getGenAI();
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   // Read frame images and convert to inline data
   const imageParts = await Promise.all(
