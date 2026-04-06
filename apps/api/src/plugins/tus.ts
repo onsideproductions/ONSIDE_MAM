@@ -41,7 +41,13 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
     datastore: s3Store,
     maxSize: 50 * 1024 * 1024 * 1024, // 50GB max
     generateUrl(req, { proto, host, path, id }) {
+      // base64url encode because the ID contains slashes (originals/{assetId}/{filename})
+      id = Buffer.from(id, 'utf-8').toString('base64url');
       return `${proto}://${host}${path}/${id}`;
+    },
+    getFileIdFromRequest(req, lastPath) {
+      if (!lastPath) return undefined;
+      return Buffer.from(lastPath, 'base64url').toString('utf-8');
     },
     namingFunction(req, metadata) {
       const assetId = nanoid();
