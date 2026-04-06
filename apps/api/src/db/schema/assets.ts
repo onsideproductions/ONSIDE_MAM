@@ -34,7 +34,6 @@ export const assets = pgTable(
     spriteKey: text('sprite_key'),
     metadata: jsonb('metadata').default({}),
     createdBy: text('created_by')
-      .notNull()
       .references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

@@ -68,7 +68,7 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
           fileSize: upload.size || 0,
           status: 'uploading',
           storageKey: upload.id,
-          createdBy: 'system', // TODO: extract from auth session
+          // createdBy will be set once auth is wired up
         });
 
         return res;
