@@ -79,7 +79,7 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
     },
     onResponseError(req, res, err) {
       app.log.error({ err, method: req.method, url: req.url }, 'tus: response error');
-      return err;
+      return undefined;
     },
     async onUploadFinish(req, res, upload) {
       // Upload complete - queue processing jobs
