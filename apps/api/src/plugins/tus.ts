@@ -15,6 +15,14 @@ import { env } from '../lib/config.js';
 export const tusPlugin: FastifyPluginAsync = async (app) => {
   const config = env();
 
+  app.log.info({
+    wasabiBucket: config.WASABI_BUCKET,
+    wasabiRegion: config.WASABI_REGION,
+    wasabiEndpoint: config.WASABI_ENDPOINT,
+    hasAccessKey: !!config.WASABI_ACCESS_KEY_ID,
+    hasSecretKey: !!config.WASABI_SECRET_ACCESS_KEY,
+  }, 'tus: initializing S3Store');
+
   const s3Store = new S3Store({
     s3ClientConfig: {
       bucket: config.WASABI_BUCKET,
@@ -41,26 +49,37 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
       return `originals/${assetId}/${filename}`;
     },
     async onUploadCreate(req, res, upload) {
-      // Create asset record in database
-      const db = getDb();
-      const metadata = upload.metadata || {};
-      const filename = metadata.filename || 'unknown';
-      const mimeType = metadata.filetype || 'video/mp4';
+      try {
+        // Create asset record in database
+        const db = getDb();
+        const metadata = upload.metadata || {};
+        const filename = metadata.filename || 'unknown';
+        const mimeType = metadata.filetype || 'video/mp4';
 
-      const assetId = upload.id.split('/')[1]; // Extract from originals/{assetId}/{filename}
+        const assetId = upload.id.split('/')[1]; // Extract from originals/{assetId}/{filename}
 
-      await db.insert(assets).values({
-        id: assetId,
-        title: filename.replace(/\.[^/.]+$/, ''), // Remove extension as default title
-        originalFilename: filename,
-        mimeType,
-        fileSize: upload.size || 0,
-        status: 'uploading',
-        storageKey: upload.id,
-        createdBy: 'system', // TODO: extract from auth session
-      });
+        app.log.info({ assetId, filename, mimeType, uploadId: upload.id }, 'tus: onUploadCreate');
 
-      return res;
+        await db.insert(assets).values({
+          id: assetId,
+          title: filename.replace(/\.[^/.]+$/, ''), // Remove extension as default title
+          originalFilename: filename,
+          mimeType,
+          fileSize: upload.size || 0,
+          status: 'uploading',
+          storageKey: upload.id,
+          createdBy: 'system', // TODO: extract from auth session
+        });
+
+        return res;
+      } catch (err) {
+        app.log.error({ err }, 'tus: onUploadCreate failed');
+        throw err;
+      }
+    },
+    onResponseError(req, res, err) {
+      app.log.error({ err, method: req.method, url: req.url }, 'tus: response error');
+      return err;
     },
     async onUploadFinish(req, res, upload) {
       // Upload complete - queue processing jobs
