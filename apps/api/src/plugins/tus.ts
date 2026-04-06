@@ -107,12 +107,14 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
     },
   });
 
-  // Handle tus requests
-  app.all('/api/upload', async (request, reply) => {
-    return tusServer.handle(request.raw, reply.raw);
+  // Handle tus requests - reply.raw is managed by tus server directly
+  app.all('/api/upload', (request, reply) => {
+    tusServer.handle(request.raw, reply.raw);
+    reply.hijack();
   });
 
-  app.all('/api/upload/*', async (request, reply) => {
-    return tusServer.handle(request.raw, reply.raw);
+  app.all('/api/upload/*', (request, reply) => {
+    tusServer.handle(request.raw, reply.raw);
+    reply.hijack();
   });
 };
