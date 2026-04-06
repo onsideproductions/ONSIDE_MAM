@@ -126,6 +126,11 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
     },
   });
 
+  // Accept tus content types that Fastify doesn't know about
+  app.addContentTypeParser('application/offset+octet-stream', (_req, _payload, done) => {
+    done(null);
+  });
+
   // Handle tus requests - reply.raw is managed by tus server directly
   app.all('/api/upload', (request, reply) => {
     tusServer.handle(request.raw, reply.raw).catch((err) => {
