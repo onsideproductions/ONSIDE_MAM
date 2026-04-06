@@ -52,8 +52,19 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
 
     const total = Number(countResult[0]?.count || 0);
 
+    // Generate signed thumbnail URLs for listing
+    const dataWithUrls = await Promise.all(
+      data.map(async (asset) => {
+        let thumbnailUrl = null;
+        if (asset.thumbnailKey) {
+          thumbnailUrl = await getStreamUrl(asset.thumbnailKey);
+        }
+        return { ...asset, thumbnailUrl };
+      })
+    );
+
     return {
-      data,
+      data: dataWithUrls,
       total,
       page,
       limit,
@@ -86,18 +97,16 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
       where: eq(aiAnalysis.assetId, id),
     });
 
-    // Generate streaming URL if asset is ready
+    // Generate streaming/thumbnail URLs if keys exist (regardless of status)
+    // Use proxy MP4 for streaming (HLS with signed URLs doesn't work because
+    // the m3u8 playlist references relative .ts segments that lack auth)
     let streamUrl = null;
     let thumbnailUrl = null;
-    if (asset.status === 'ready') {
-      if (asset.hlsKey) {
-        streamUrl = await getStreamUrl(asset.hlsKey);
-      } else if (asset.proxyKey) {
-        streamUrl = await getStreamUrl(asset.proxyKey);
-      }
-      if (asset.thumbnailKey) {
-        thumbnailUrl = await getStreamUrl(asset.thumbnailKey);
-      }
+    if (asset.proxyKey) {
+      streamUrl = await getStreamUrl(asset.proxyKey);
+    }
+    if (asset.thumbnailKey) {
+      thumbnailUrl = await getStreamUrl(asset.thumbnailKey);
     }
 
     return {
