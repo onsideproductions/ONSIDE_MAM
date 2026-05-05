@@ -87,9 +87,11 @@
 {:else if asset}
   <div class="flex flex-col lg:flex-row h-full">
     <!-- Video player area -->
-    <div class="flex-1 bg-black flex items-center justify-center min-h-[400px]">
+    <div class="flex-1 bg-black flex items-center justify-center min-h-[400px] p-4">
       {#if asset.streamUrl}
-        <VideoPlayer src={asset.streamUrl} poster={asset.thumbnailUrl} />
+        <div class="w-full max-w-5xl">
+          <VideoPlayer src={asset.streamUrl} poster={asset.thumbnailUrl} />
+        </div>
       {:else}
         <div class="text-white text-center">
           <svg class="w-16 h-16 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">

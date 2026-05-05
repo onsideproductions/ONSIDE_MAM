@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  import 'video.js/dist/video-js.css';
 
   let { src, poster = null } = $props();
 
