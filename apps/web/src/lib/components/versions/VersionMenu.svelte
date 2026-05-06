@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { auth } from '$lib/stores/auth';
   import { toast } from '$lib/stores/toast';
-  import * as tus from 'tus-js-client';
+  import { uploadFile } from '$lib/upload/multipart';
 
   let { asset, onChange = () => {} } = $props();
 
@@ -34,37 +34,24 @@
     e.target.value = '';
   }
 
-  function upload(file) {
+  async function upload(file) {
     uploadingNewVersion = true;
     uploadProgress = 0;
-
-    const tusUpload = new tus.Upload(file, {
-      endpoint: '/api/upload',
-      retryDelays: [0, 3000, 5000, 10000, 20000],
-      chunkSize: 50 * 1024 * 1024,
-      withCredentials: true,
-      metadata: {
-        filename: file.name,
-        filetype: file.type,
-        filesize: String(file.size),
-        version_of: asset.id,
-      },
-      onProgress(bytesUploaded, bytesTotal) {
-        uploadProgress = Math.round((bytesUploaded / bytesTotal) * 100);
-      },
-      onSuccess() {
-        uploadingNewVersion = false;
-        uploadProgress = 100;
-        toast.success(`V${totalVersions + 1} uploaded`);
-        onChange();
-      },
-      onError(err) {
-        uploadingNewVersion = false;
-        toast.error('Upload failed: ' + err.message);
-      },
-    });
-
-    tusUpload.start();
+    try {
+      await uploadFile({
+        file,
+        versionOf: asset.id,
+        onProgress: (p) => {
+          uploadProgress = p.percent;
+        },
+      });
+      toast.success(`V${totalVersions + 1} uploaded`);
+      onChange();
+    } catch (err) {
+      toast.error('Upload failed: ' + err.message);
+    } finally {
+      uploadingNewVersion = false;
+    }
   }
 
   function selectVersion(v) {
