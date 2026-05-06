@@ -12,12 +12,18 @@ export function getAuth() {
       connectionString: config.DATABASE_URL,
     });
 
+    // Allow extra origins via comma-separated env var (e.g. "http://1.2.3.4,https://mydomain.com")
+    const extraOrigins = (process.env.TRUSTED_ORIGINS || '')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
+    const trusted = Array.from(new Set([config.AUTH_URL, ...extraOrigins]));
+
     _auth = betterAuth({
       database: pool,
       secret: config.AUTH_SECRET,
       baseURL: config.AUTH_URL,
-      // Trust requests from the configured web origin
-      trustedOrigins: [config.AUTH_URL],
+      trustedOrigins: trusted,
       emailAndPassword: {
         enabled: true,
         // For an internal team tool, no email verification step
