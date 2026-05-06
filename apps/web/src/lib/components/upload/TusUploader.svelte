@@ -38,6 +38,8 @@
       endpoint: '/api/upload',
       retryDelays: [0, 3000, 5000, 10000, 20000],
       chunkSize: 50 * 1024 * 1024, // 50MB chunks
+      // Send cookies so the auth session reaches the API
+      withCredentials: true,
       metadata: {
         filename: uploadState.file.name,
         filetype: uploadState.file.type,

@@ -10,6 +10,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...options,
   });
 
+  if (res.status === 401 && typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    window.location.href = '/login';
+    throw new Error('Unauthorized');
+  }
+
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(error.error || `Request failed: ${res.status}`);
