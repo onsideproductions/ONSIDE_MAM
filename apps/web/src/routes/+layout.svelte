@@ -151,9 +151,16 @@
                   Role: <span class="font-medium">{$auth.user.role}</span>
                 </p>
               </div>
+              <a
+                href="/settings/profile"
+                onclick={() => menuOpen = false}
+                class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Settings
+              </a>
               <button
                 onclick={() => auth.signOut()}
-                class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
+                class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 border-t border-gray-200 dark:border-gray-800"
               >
                 Sign out
               </button>
