@@ -123,17 +123,17 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(collectionAssets.assetId, id))
       .orderBy(collections.name);
 
-    // Streaming URL: prefer HLS (adaptive, lower bandwidth start-up) via our
-    // /stream.m3u8 endpoint that rewrites segments with signed URLs. Fall back
-    // to the proxy MP4 if HLS isn't ready yet.
+    // Streaming URL: prefer the proxy MP4 (broad browser support, simple,
+    // works through Cloudflare) and fall back to HLS via our rewriter
+    // endpoint only if the proxy hasn't been generated yet.
     let streamUrl: string | null = null;
     let streamType: 'hls' | 'mp4' | null = null;
-    if (asset.hlsKey) {
-      streamUrl = `/api/assets/${asset.id}/stream.m3u8`;
-      streamType = 'hls';
-    } else if (asset.proxyKey) {
+    if (asset.proxyKey) {
       streamUrl = await getStreamUrl(asset.proxyKey);
       streamType = 'mp4';
+    } else if (asset.hlsKey) {
+      streamUrl = `/api/assets/${asset.id}/stream.m3u8`;
+      streamType = 'hls';
     }
 
     let thumbnailUrl: string | null = null;

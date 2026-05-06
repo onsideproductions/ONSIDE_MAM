@@ -23,14 +23,9 @@
       fluid: true,
       responsive: true,
       playbackRates: [0.25, 0.5, 1, 1.5, 2],
-      // HLS config: send the auth cookie to /api/assets/:id/stream.m3u8
+      // HLS config: send the auth cookie when fetching m3u8 from our API
       html5: {
-        vhs: {
-          withCredentials: true,
-          overrideNative: true,
-        },
-        nativeAudioTracks: false,
-        nativeVideoTracks: false,
+        vhs: { withCredentials: true },
       },
       controlBar: {
         children: [
