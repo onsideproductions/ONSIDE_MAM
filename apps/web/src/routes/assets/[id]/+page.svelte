@@ -92,7 +92,11 @@
     <div class="flex-1 bg-black flex items-center justify-center min-h-[400px] p-4">
       {#if asset.streamUrl}
         <div class="w-full max-w-5xl">
-          <VideoPlayer src={asset.streamUrl} poster={asset.thumbnailUrl} />
+          <VideoPlayer
+            src={asset.streamUrl}
+            poster={asset.thumbnailUrl}
+            type={asset.streamType === 'hls' ? 'application/x-mpegURL' : 'video/mp4'}
+          />
         </div>
       {:else}
         <div class="text-white text-center">

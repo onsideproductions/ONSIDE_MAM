@@ -10,7 +10,15 @@ import {
   collections,
   collectionAssets,
 } from '../db/index.js';
-import { getDownloadUrl, getStreamUrl, deleteFromStorage, storageKey } from '../lib/storage.js';
+import {
+  getDownloadUrl,
+  getStreamUrl,
+  deleteFromStorage,
+  storageKey,
+  getS3Client,
+  getBucket,
+} from '../lib/storage.js';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { requireAuth, requireRole } from '../plugins/session.js';
 import {
   getQueue,
@@ -115,14 +123,20 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(collectionAssets.assetId, id))
       .orderBy(collections.name);
 
-    // Generate streaming/thumbnail URLs if keys exist (regardless of status)
-    // Use proxy MP4 for streaming (HLS with signed URLs doesn't work because
-    // the m3u8 playlist references relative .ts segments that lack auth)
-    let streamUrl = null;
-    let thumbnailUrl = null;
-    if (asset.proxyKey) {
+    // Streaming URL: prefer HLS (adaptive, lower bandwidth start-up) via our
+    // /stream.m3u8 endpoint that rewrites segments with signed URLs. Fall back
+    // to the proxy MP4 if HLS isn't ready yet.
+    let streamUrl: string | null = null;
+    let streamType: 'hls' | 'mp4' | null = null;
+    if (asset.hlsKey) {
+      streamUrl = `/api/assets/${asset.id}/stream.m3u8`;
+      streamType = 'hls';
+    } else if (asset.proxyKey) {
       streamUrl = await getStreamUrl(asset.proxyKey);
+      streamType = 'mp4';
     }
+
+    let thumbnailUrl: string | null = null;
     if (asset.thumbnailKey) {
       thumbnailUrl = await getStreamUrl(asset.thumbnailKey);
     }
@@ -133,6 +147,7 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
       aiAnalysis: analysis || null,
       collections: inCollections,
       streamUrl,
+      streamType,
       thumbnailUrl,
     };
   });
@@ -310,6 +325,50 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return { url, filename };
+  });
+
+  // HLS streaming: fetch the master.m3u8 from Wasabi and rewrite every
+  // segment line with a presigned URL so the browser can pull segments
+  // directly from Wasabi without a session cookie.
+  app.get<{ Params: { id: string } }>('/:id/stream.m3u8', async (request, reply) => {
+    requireAuth(request);
+    const db = getDb();
+    const { id } = request.params;
+
+    const asset = await db.query.assets.findFirst({ where: eq(assets.id, id) });
+    if (!asset) return reply.status(404).send({ error: 'Asset not found' });
+    if (!asset.hlsKey) {
+      return reply.status(404).send({ error: 'HLS not available' });
+    }
+
+    // Fetch the playlist from Wasabi
+    const s3 = getS3Client();
+    const result = await s3.send(
+      new GetObjectCommand({ Bucket: getBucket(), Key: asset.hlsKey })
+    );
+    const text = await result.Body?.transformToString();
+    if (!text) return reply.status(500).send({ error: 'Empty playlist' });
+
+    // Rewrite non-comment, non-empty lines as presigned URLs.
+    // Single-bitrate HLS: lines are either #EXT* directives or "segment_NNN.ts" filenames.
+    const baseDir = asset.hlsKey.replace(/\/[^/]+$/, ''); // "hls/{assetId}"
+    const rewritten: string[] = [];
+    for (const rawLine of text.split('\n')) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith('#')) {
+        rewritten.push(rawLine);
+        continue;
+      }
+      // Resolve segment relative to the playlist directory
+      const segmentKey = `${baseDir}/${line}`;
+      const url = await getStreamUrl(segmentKey, 14400);
+      rewritten.push(url);
+    }
+
+    reply.header('Content-Type', 'application/vnd.apple.mpegurl');
+    // Don't cache - signed URLs are short-lived
+    reply.header('Cache-Control', 'no-store');
+    return reply.send(rewritten.join('\n'));
   });
 
   // ---- Bulk operations ----

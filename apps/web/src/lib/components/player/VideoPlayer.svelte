@@ -2,10 +2,16 @@
   import { onMount, onDestroy } from 'svelte';
   import 'video.js/dist/video-js.css';
 
-  let { src, poster = null } = $props();
+  let { src, poster = null, type = null } = $props();
 
   let videoEl;
   let player = null;
+
+  function detectType(url) {
+    if (type) return type;
+    if (url.includes('.m3u8') || url.endsWith('/stream.m3u8')) return 'application/x-mpegURL';
+    return 'video/mp4';
+  }
 
   onMount(async () => {
     const videojs = (await import('video.js')).default;
@@ -17,6 +23,15 @@
       fluid: true,
       responsive: true,
       playbackRates: [0.25, 0.5, 1, 1.5, 2],
+      // HLS config: send the auth cookie to /api/assets/:id/stream.m3u8
+      html5: {
+        vhs: {
+          withCredentials: true,
+          overrideNative: true,
+        },
+        nativeAudioTracks: false,
+        nativeVideoTracks: false,
+      },
       controlBar: {
         children: [
           'playToggle',
@@ -31,12 +46,7 @@
       },
     });
 
-    // Set source
-    if (src.includes('.m3u8')) {
-      player.src({ type: 'application/x-mpegURL', src });
-    } else {
-      player.src({ type: 'video/mp4', src });
-    }
+    player.src({ type: detectType(src), src });
 
     // Keyboard shortcuts
     videoEl.addEventListener('keydown', (e) => {
