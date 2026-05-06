@@ -6,6 +6,7 @@
   import { toast } from '$lib/stores/toast';
   import VideoPlayer from '$components/player/VideoPlayer.svelte';
   import AddToCollection from '$components/collections/AddToCollection.svelte';
+  import CreateShareDialog from '$components/share/CreateShareDialog.svelte';
 
   let asset = $state(null);
   let loading = $state(true);
@@ -13,6 +14,7 @@
   let newTitle = $state('');
   let newTag = $state('');
   let allTags = $state([]);
+  let shareDialogOpen = $state(false);
   let showSuggestions = $state(false);
 
   const assetId = $page.params.id;
@@ -326,9 +328,20 @@
 
         <!-- Actions -->
         <div class="flex flex-col gap-2">
+          {#if canEdit}
+            <button
+              onclick={() => shareDialogOpen = true}
+              class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              Share
+            </button>
+          {/if}
           <button
             onclick={() => downloadAsset('original')}
-            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium {canEdit ? 'border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800' : 'bg-blue-600 text-white hover:bg-blue-700'} rounded-lg"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -347,4 +360,9 @@
       </div>
     </div>
   </div>
+
+  <CreateShareDialog
+    assetId={asset.id}
+    bind:open={shareDialogOpen}
+  />
 {/if}
