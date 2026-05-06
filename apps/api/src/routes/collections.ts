@@ -4,43 +4,78 @@ import { getDb, collections, collectionAssets, assets, auditLog } from '../db/in
 import { getStreamUrl } from '../lib/storage.js';
 import { requireRole } from '../plugins/session.js';
 
+/**
+ * Returns a Map<collectionId, number> with the recursive asset count
+ * (this folder + all descendants). DISTINCT so an asset in two
+ * descendants of the same root only counts once.
+ */
+async function recursiveAssetCounts(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  ids: string[]
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (!ids.length) return result;
+
+  const rows = await db.execute(sql`
+    WITH RECURSIVE descendants AS (
+      SELECT id AS root_id, id AS descendant_id
+      FROM collections
+      WHERE id IN (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})
+      UNION ALL
+      SELECT d.root_id, c.id
+      FROM collections c
+      INNER JOIN descendants d ON c.parent_id = d.descendant_id
+    )
+    SELECT d.root_id, COUNT(DISTINCT ca.asset_id)::int AS asset_count
+    FROM descendants d
+    LEFT JOIN collection_assets ca ON ca.collection_id = d.descendant_id
+    GROUP BY d.root_id
+  `);
+  // drizzle returns { rows: [...] } for raw execute on pg
+  const list: Array<{ root_id: string; asset_count: number }> =
+    (rows as { rows?: Array<{ root_id: string; asset_count: number }> }).rows ??
+    (rows as Array<{ root_id: string; asset_count: number }>);
+  for (const row of list) {
+    result.set(row.root_id, Number(row.asset_count));
+  }
+  return result;
+}
+
 export const collectionRoutes: FastifyPluginAsync = async (app) => {
   // List root collections (no parent)
   app.get('/', async () => {
     const db = getDb();
 
-    const result = await db
-      .select({
-        collection: collections,
-        assetCount: sql<number>`count(${collectionAssets.assetId})`,
-      })
+    const rows = await db
+      .select()
       .from(collections)
-      .leftJoin(collectionAssets, eq(collectionAssets.collectionId, collections.id))
       .where(isNull(collections.parentId))
-      .groupBy(collections.id)
       .orderBy(collections.name);
 
-    // Generate signed URLs for cover images
-    const withCovers = await Promise.all(
-      result.map(async (r) => {
+    const counts = await recursiveAssetCounts(
+      db,
+      rows.map((c) => c.id)
+    );
+
+    return Promise.all(
+      rows.map(async (c) => {
         let coverUrl: string | null = null;
-        if (r.collection.coverAssetId) {
+        if (c.coverAssetId) {
           const cover = await db.query.assets.findFirst({
-            where: eq(assets.id, r.collection.coverAssetId),
+            where: eq(assets.id, c.coverAssetId),
           });
           if (cover?.thumbnailKey) {
             coverUrl = await getStreamUrl(cover.thumbnailKey);
           }
         }
         return {
-          ...r.collection,
-          assetCount: Number(r.assetCount),
+          ...c,
+          assetCount: counts.get(c.id) ?? 0,
           coverUrl,
         };
       })
     );
-
-    return withCovers;
   });
 
   // Flat list of all collections (for picker UI)
@@ -89,31 +124,31 @@ export const collectionRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Get children
-    const childrenRows = await db
-      .select({
-        collection: collections,
-        assetCount: sql<number>`count(${collectionAssets.assetId})`,
-      })
+    const childRows = await db
+      .select()
       .from(collections)
-      .leftJoin(collectionAssets, eq(collectionAssets.collectionId, collections.id))
       .where(eq(collections.parentId, id))
-      .groupBy(collections.id)
       .orderBy(collections.name);
 
+    const childCounts = await recursiveAssetCounts(
+      db,
+      childRows.map((c) => c.id)
+    );
+
     const children = await Promise.all(
-      childrenRows.map(async (c) => {
+      childRows.map(async (c) => {
         let coverUrl: string | null = null;
-        if (c.collection.coverAssetId) {
+        if (c.coverAssetId) {
           const cover = await db.query.assets.findFirst({
-            where: eq(assets.id, c.collection.coverAssetId),
+            where: eq(assets.id, c.coverAssetId),
           });
           if (cover?.thumbnailKey) {
             coverUrl = await getStreamUrl(cover.thumbnailKey);
           }
         }
         return {
-          ...c.collection,
-          assetCount: Number(c.assetCount),
+          ...c,
+          assetCount: childCounts.get(c.id) ?? 0,
           coverUrl,
         };
       })
