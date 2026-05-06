@@ -10,6 +10,7 @@
   import CommentsPanel from '$components/comments/CommentsPanel.svelte';
   import ActivityPanel from '$components/activity/ActivityPanel.svelte';
   import TranscriptPanel from '$components/transcript/TranscriptPanel.svelte';
+  import VersionMenu from '$components/versions/VersionMenu.svelte';
 
   let asset = $state(null);
   let loading = $state(true);
@@ -236,6 +237,14 @@
             </h1>
           {/if}
           <p class="text-sm text-gray-500 mt-1">{asset.originalFilename}</p>
+          <div class="mt-3">
+            <VersionMenu {asset} onChange={loadAsset} />
+          </div>
+          {#if !asset.isLatestVersion}
+            <p class="mt-2 text-xs text-amber-400">
+              You are viewing an older version. The latest is V{Math.max(...(asset.versions ?? []).map((v) => v.versionNumber))}.
+            </p>
+          {/if}
         </div>
 
         <!-- Status -->

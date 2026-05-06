@@ -51,6 +51,8 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
         sql`(${assets.title} ILIKE ${`%${query}%`} OR ${assets.description} ILIKE ${`%${query}%`})`
       );
     }
+    // Only show the latest version of each asset in listings
+    conditions.push(eq(assets.isLatestVersion, true));
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -115,6 +117,24 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
       where: eq(aiAnalysis.assetId, id),
     });
 
+    // Get all versions in this asset's group (or just self if standalone)
+    const groupId = asset.versionGroupId ?? asset.id;
+    const versions = await db
+      .select({
+        id: assets.id,
+        versionNumber: assets.versionNumber,
+        isLatestVersion: assets.isLatestVersion,
+        fileSize: assets.fileSize,
+        originalFilename: assets.originalFilename,
+        createdAt: assets.createdAt,
+        createdBy: assets.createdBy,
+      })
+      .from(assets)
+      .where(
+        sql`(${assets.versionGroupId} = ${groupId}) OR (${assets.versionGroupId} IS NULL AND ${assets.id} = ${groupId})`
+      )
+      .orderBy(desc(assets.versionNumber));
+
     // Get collections this asset is in
     const inCollections = await db
       .select({ id: collections.id, name: collections.name })
@@ -146,6 +166,7 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
       tags: assetTagRows.map((r) => r.tag),
       aiAnalysis: analysis || null,
       collections: inCollections,
+      versions,
       streamUrl,
       streamType,
       thumbnailUrl,

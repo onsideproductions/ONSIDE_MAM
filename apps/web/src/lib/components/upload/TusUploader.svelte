@@ -1,6 +1,8 @@
 <script>
   import * as tus from 'tus-js-client';
 
+  let { versionOf = null, onComplete = () => {} } = $props();
+
   let files = $state([]);
   let uploads = $state([]);
 
@@ -44,6 +46,7 @@
         filename: uploadState.file.name,
         filetype: uploadState.file.type,
         filesize: String(uploadState.file.size),
+        ...(versionOf ? { version_of: versionOf } : {}),
       },
       onProgress(bytesUploaded, bytesTotal) {
         uploadState.progress = Math.round((bytesUploaded / bytesTotal) * 100);
@@ -52,6 +55,7 @@
         uploadState.status = 'complete';
         uploadState.progress = 100;
         uploadState.uploadUrl = upload.url;
+        onComplete();
       },
       onError(error) {
         uploadState.status = 'error';

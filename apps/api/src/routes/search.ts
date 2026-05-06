@@ -115,6 +115,9 @@ export const searchRoutes: FastifyPluginAsync = async (app) => {
     if (uploadedAfter) conditions.push(sql`${gte(assets.createdAt, new Date(uploadedAfter))}`);
     if (uploadedBefore) conditions.push(sql`${lte(assets.createdAt, new Date(uploadedBefore))}`);
 
+    // Only return the latest version of each asset
+    conditions.push(eq(assets.isLatestVersion, true));
+
     // Build ORDER BY based on sort
     const relevanceExpr = q
       ? sql<number>`ts_rank(

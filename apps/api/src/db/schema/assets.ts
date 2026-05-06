@@ -6,6 +6,7 @@ import {
   real,
   timestamp,
   jsonb,
+  boolean,
   index,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
@@ -33,6 +34,10 @@ export const assets = pgTable(
     thumbnailKey: text('thumbnail_key'),
     spriteKey: text('sprite_key'),
     metadata: jsonb('metadata').default({}),
+    /** Shared id across all versions of the same asset; defaults to the asset's own id for v1 */
+    versionGroupId: text('version_group_id'),
+    versionNumber: integer('version_number').notNull().default(1),
+    isLatestVersion: boolean('is_latest_version').notNull().default(true),
     createdBy: text('created_by')
       .references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -43,6 +48,8 @@ export const assets = pgTable(
     index('assets_status_idx').on(table.status),
     index('assets_created_by_idx').on(table.createdBy),
     index('assets_created_at_idx').on(table.createdAt),
+    index('assets_version_group_idx').on(table.versionGroupId),
+    index('assets_is_latest_idx').on(table.isLatestVersion),
   ]
 );
 

@@ -78,22 +78,81 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
         const metadata = upload.metadata || {};
         const filename = metadata.filename || 'unknown';
         const mimeType = metadata.filetype || 'video/mp4';
+        const versionOf = metadata.version_of; // optional: id of an existing asset
 
         const assetId = upload.id.split('/')[1]; // Extract from originals/{assetId}/{filename}
 
+        // Default: this is a v1 standalone asset, group id = its own id
+        let versionGroupId = assetId;
+        let versionNumber = 1;
+        let title = filename.replace(/\.[^/.]+$/, '');
+
+        if (versionOf) {
+          const { eq, and } = await import('drizzle-orm');
+          // Find the parent asset
+          const parent = await db.query.assets.findFirst({
+            where: eq(assets.id, versionOf),
+          });
+          if (parent) {
+            versionGroupId = parent.versionGroupId ?? parent.id;
+            // Inherit title and any custom metadata fields from the parent
+            title = parent.title;
+
+            // Backfill the parent's versionGroupId if it was null
+            if (!parent.versionGroupId) {
+              await db
+                .update(assets)
+                .set({ versionGroupId })
+                .where(eq(assets.id, parent.id));
+            }
+
+            // Find max version in this group
+            const groupAssets = await db
+              .select()
+              .from(assets)
+              .where(eq(assets.versionGroupId, versionGroupId));
+            versionNumber = Math.max(
+              ...groupAssets.map((a) => a.versionNumber ?? 1),
+              parent.versionNumber ?? 1
+            ) + 1;
+
+            // Mark all existing versions in the group as not latest
+            await db
+              .update(assets)
+              .set({ isLatestVersion: false })
+              .where(
+                and(
+                  eq(assets.versionGroupId, versionGroupId),
+                  eq(assets.isLatestVersion, true)
+                )
+              );
+          }
+        }
+
         app.log.info(
-          { assetId, filename, mimeType, uploadId: upload.id, userId: sessionUser.id },
+          {
+            assetId,
+            filename,
+            mimeType,
+            uploadId: upload.id,
+            userId: sessionUser.id,
+            versionGroupId,
+            versionNumber,
+          },
           'tus: onUploadCreate'
         );
 
         await db.insert(assets).values({
           id: assetId,
-          title: filename.replace(/\.[^/.]+$/, ''), // Remove extension as default title
+          title,
           originalFilename: filename,
           mimeType,
           fileSize: upload.size || 0,
           status: 'uploading',
           storageKey: upload.id,
+          versionGroupId,
+          versionNumber,
+          isLatestVersion: true,
           createdBy: sessionUser.id,
         });
 
