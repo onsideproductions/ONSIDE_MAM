@@ -11,9 +11,10 @@ export const userRoutes: FastifyPluginAsync = async (app) => {
     return request.user;
   });
 
-  // List users (admin only)
+  // List users (any logged-in user — needed for @mention pickers etc.)
+  // Sensitive operations like role change / delete are still admin-gated below.
   app.get('/', async (request) => {
-    requireRole(request, 'admin');
+    requireAuth(request);
     const db = getDb();
     const result = await db
       .select({

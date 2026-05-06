@@ -7,6 +7,7 @@
   import VideoPlayer from '$components/player/VideoPlayer.svelte';
   import AddToCollection from '$components/collections/AddToCollection.svelte';
   import CreateShareDialog from '$components/share/CreateShareDialog.svelte';
+  import CommentsPanel from '$components/comments/CommentsPanel.svelte';
 
   let asset = $state(null);
   let loading = $state(true);
@@ -16,6 +17,11 @@
   let allTags = $state([]);
   let shareDialogOpen = $state(false);
   let showSuggestions = $state(false);
+
+  let currentTime = $state(0);
+  let playerControls = $state(null);
+  let commentMarkers = $state([]);
+  let activeTab = $state('comments'); // 'comments' | 'info'
 
   const assetId = $page.params.id;
 
@@ -127,6 +133,9 @@
             src={asset.streamUrl}
             poster={asset.thumbnailUrl}
             type={asset.streamType === 'hls' ? 'application/x-mpegURL' : 'video/mp4'}
+            bind:currentTime
+            markers={commentMarkers}
+            onReady={(p) => playerControls = p}
           />
         </div>
       {:else}
@@ -141,8 +150,40 @@
     </div>
 
     <!-- Sidebar -->
-    <div class="w-full lg:w-96 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 overflow-y-auto">
-      <div class="p-5 space-y-6">
+    <div class="w-full lg:w-96 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 flex flex-col">
+      <!-- Tab switcher -->
+      <div class="flex border-b border-gray-200 dark:border-gray-800 shrink-0">
+        <button
+          onclick={() => activeTab = 'comments'}
+          class="flex-1 px-4 py-3 text-sm font-medium transition-colors
+            {activeTab === 'comments' ? 'text-gray-100 border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-200'}"
+        >
+          Comments
+        </button>
+        <button
+          onclick={() => activeTab = 'info'}
+          class="flex-1 px-4 py-3 text-sm font-medium transition-colors
+            {activeTab === 'info' ? 'text-gray-100 border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-200'}"
+        >
+          Details
+        </button>
+      </div>
+
+      {#if activeTab === 'comments'}
+        <div class="flex-1 min-h-0">
+          <CommentsPanel
+            {assetId}
+            {currentTime}
+            seek={(t) => playerControls?.seek(t)}
+            onCommentsChange={(list) => {
+              commentMarkers = list
+                .filter((c) => c.timecode != null && !c.parentId)
+                .map((c) => ({ id: c.id, timecode: c.timecode, color: c.resolved ? '#6B7385' : undefined }));
+            }}
+          />
+        </div>
+      {:else}
+      <div class="overflow-y-auto p-5 space-y-6 flex-1">
         <!-- Title -->
         <div>
           {#if editingTitle && canEdit}
@@ -358,6 +399,7 @@
           {/if}
         </div>
       </div>
+      {/if}
     </div>
   </div>
 

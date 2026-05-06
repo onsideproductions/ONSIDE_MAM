@@ -2,10 +2,23 @@
   import { onMount, onDestroy } from 'svelte';
   import 'video.js/dist/video-js.css';
 
-  let { src, poster = null, type = null } = $props();
+  let {
+    src,
+    poster = null,
+    type = null,
+    /** [{ timecode: number, color?: string, id?: string }] - shown as dots on the progress bar */
+    markers = [],
+    /** $bindable - parent can read currentTime live */
+    currentTime = $bindable(0),
+    /** parent gets a callback so it can seek the player */
+    onReady = (_player) => {},
+  } = $props();
 
   let videoEl;
   let player = null;
+  let progressEl = null;
+  let duration = $state(0);
+  let timeUpdater = null;
 
   function detectType(url) {
     if (type) return type;
@@ -23,7 +36,6 @@
       fluid: true,
       responsive: true,
       playbackRates: [0.25, 0.5, 1, 1.5, 2],
-      // HLS config: send the auth cookie when fetching m3u8 from our API
       html5: {
         vhs: { withCredentials: true },
       },
@@ -43,7 +55,28 @@
 
     player.src({ type: detectType(src), src });
 
-    // Keyboard shortcuts
+    player.on('loadedmetadata', () => {
+      duration = player.duration() || 0;
+      // Find the progress bar to overlay markers
+      const root = videoEl?.closest('.video-js') ?? videoEl;
+      progressEl = root?.querySelector('.vjs-progress-control .vjs-progress-holder');
+    });
+
+    timeUpdater = setInterval(() => {
+      if (player) currentTime = player.currentTime() || 0;
+    }, 250);
+
+    onReady({
+      seek: (t) => {
+        if (player) {
+          player.currentTime(t);
+          player.play().catch(() => {});
+        }
+      },
+      pause: () => player?.pause(),
+      currentTime: () => player?.currentTime() ?? 0,
+    });
+
     videoEl.addEventListener('keydown', (e) => {
       switch (e.key) {
         case ' ':
@@ -76,13 +109,12 @@
   });
 
   onDestroy(() => {
-    if (player) {
-      player.dispose();
-    }
+    if (timeUpdater) clearInterval(timeUpdater);
+    if (player) player.dispose();
   });
 </script>
 
-<div class="w-full h-full">
+<div class="w-full h-full relative">
   <!-- svelte-ignore a11y_media_has_caption -->
   <video
     bind:this={videoEl}
@@ -91,11 +123,51 @@
     tabindex="0"
   >
   </video>
+
+  <!-- Markers overlay attached to the progress bar via fixed positioning relative to player -->
+  {#if duration > 0 && markers.length > 0}
+    <div class="vjs-marker-layer pointer-events-none">
+      {#each markers as m}
+        {@const left = Math.min(100, Math.max(0, (m.timecode / duration) * 100))}
+        <button
+          type="button"
+          class="vjs-marker"
+          style="left: {left}%; background-color: {m.color || '#1697C5'}"
+          aria-label="Comment marker"
+          title="{Math.floor(m.timecode / 60)}:{Math.floor(m.timecode % 60).toString().padStart(2, '0')}"
+        ></button>
+      {/each}
+    </div>
+  {/if}
 </div>
 
 <style>
   :global(.video-js) {
     width: 100%;
     height: 100%;
+  }
+  .vjs-marker-layer {
+    position: absolute;
+    /* Sit roughly where the progress bar is. Video.js controlbar height is ~3em, progress is in there */
+    bottom: 35px;
+    left: 0;
+    right: 0;
+    height: 14px;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .vjs-marker {
+    position: absolute;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    transform: translateX(-50%);
+    border: 2px solid rgba(0, 0, 0, 0.6);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  .vjs-marker:hover {
+    transform: translateX(-50%) scale(1.2);
   }
 </style>

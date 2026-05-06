@@ -7,6 +7,7 @@ import * as auditSchema from './schema/audit.js';
 import * as aiAnalysisSchema from './schema/ai-analysis.js';
 import * as settingsSchema from './schema/settings.js';
 import * as sharesSchema from './schema/shares.js';
+import * as commentsSchema from './schema/comments.js';
 
 const schema = {
   ...usersSchema,
@@ -16,6 +17,7 @@ const schema = {
   ...aiAnalysisSchema,
   ...settingsSchema,
   ...sharesSchema,
+  ...commentsSchema,
 };
 
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
@@ -38,3 +40,4 @@ export { auditLog } from './schema/audit.js';
 export { aiAnalysis } from './schema/ai-analysis.js';
 export { notificationPreferences, accountSettings } from './schema/settings.js';
 export { shares } from './schema/shares.js';
+export { comments, commentMentions } from './schema/comments.js';
