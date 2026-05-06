@@ -43,6 +43,9 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
     path: '/api/upload',
     datastore: s3Store,
     maxSize: 50 * 1024 * 1024 * 1024, // 50GB max
+    // Trust X-Forwarded-* headers from nginx so the Location URL uses
+    // https:// when the original request came in over HTTPS
+    respectForwardedHeaders: true,
     generateUrl(req, { proto, host, path, id }) {
       // base64url encode because the ID contains slashes (originals/{assetId}/{filename})
       id = Buffer.from(id, 'utf-8').toString('base64url');
