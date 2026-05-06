@@ -4,6 +4,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { auth } from '$lib/stores/auth';
+  import { branding } from '$lib/stores/branding';
   import Toaster from '$components/ui/Toaster.svelte';
   import ConfirmDialog from '$components/ui/ConfirmDialog.svelte';
 
@@ -16,6 +17,13 @@
 
   onMount(async () => {
     await auth.refresh();
+  });
+
+  // Load branding once we have a user (so we don't fetch from the public login page)
+  $effect(() => {
+    if ($auth.user && !$branding.loaded) {
+      branding.load();
+    }
   });
 
   // Redirect to /login when there's no user (except on public routes)
@@ -60,8 +68,16 @@
     <header class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-3 flex items-center justify-between shrink-0">
       <div class="flex items-center gap-8">
         <a href="/" class="flex items-center gap-2 text-base font-semibold tracking-tight text-gray-100">
-          <span class="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
-          ONSIDE
+          {#if $branding.branding.logoUrl}
+            <img
+              src={$branding.branding.logoUrl}
+              alt={$branding.branding.teamName ?? 'Logo'}
+              class="h-7 w-auto max-w-[140px] object-contain"
+            />
+          {:else}
+            <span class="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
+            {$branding.branding.teamName ?? 'ONSIDE'}
+          {/if}
         </a>
         <nav class="flex items-center gap-1">
           <a

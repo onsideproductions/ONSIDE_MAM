@@ -18,8 +18,8 @@
       heading: 'Account',
       items: [
         { href: '/settings/usage', label: 'Usage' },
-        { href: '/settings/branding', label: 'Branding', adminOnly: true },
-        { href: '/settings/shares', label: 'Shares', adminOnly: true },
+        { href: '/settings/branding', label: 'Branding' },
+        { href: '/settings/shares', label: 'Shares' },
       ],
     },
     {
