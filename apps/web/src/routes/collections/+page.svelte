@@ -1,12 +1,17 @@
 <script>
   import { onMount } from 'svelte';
   import { api } from '$api/client';
+  import { auth } from '$lib/stores/auth';
 
   let collections = $state([]);
   let loading = $state(true);
   let showCreateForm = $state(false);
   let newName = $state('');
   let newDescription = $state('');
+
+  let canEdit = $derived(
+    $auth.user?.role === 'admin' || $auth.user?.role === 'editor'
+  );
 
   onMount(async () => {
     await loadCollections();
@@ -34,12 +39,6 @@
     showCreateForm = false;
     await loadCollections();
   }
-
-  async function deleteCollection(id) {
-    if (!confirm('Delete this collection? Assets will not be deleted.')) return;
-    await api.delete(`/collections/${id}`);
-    await loadCollections();
-  }
 </script>
 
 <svelte:head>
@@ -49,15 +48,17 @@
 <div class="p-6 max-w-7xl mx-auto">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold">Collections</h1>
-    <button
-      onclick={() => showCreateForm = !showCreateForm}
-      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-      </svg>
-      New Collection
-    </button>
+    {#if canEdit}
+      <button
+        onclick={() => showCreateForm = !showCreateForm}
+        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        New Collection
+      </button>
+    {/if}
   </div>
 
   <!-- Create form -->
@@ -98,23 +99,27 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
       </svg>
       <p class="font-medium">No collections yet</p>
-      <p class="text-sm mt-1">Create a collection to organize your assets</p>
+      <p class="text-sm mt-1">{canEdit ? 'Create a collection to organize your assets' : 'Ask an editor to create some'}</p>
     </div>
   {:else}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {#each collections as collection}
-        <a href="/collections/{collection.id}" class="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
-          <div class="aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-            <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
+        <a href="/collections/{collection.id}" class="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 transition-all">
+          <div class="aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+            {#if collection.coverUrl}
+              <img src={collection.coverUrl} alt={collection.name} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+            {:else}
+              <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              </svg>
+            {/if}
           </div>
           <div class="p-4">
-            <h3 class="font-medium group-hover:text-blue-600 transition-colors">{collection.name}</h3>
+            <h3 class="font-medium group-hover:text-blue-600 transition-colors truncate">{collection.name}</h3>
             {#if collection.description}
               <p class="text-sm text-gray-500 mt-1 line-clamp-2">{collection.description}</p>
             {/if}
-            <p class="text-xs text-gray-400 mt-2">{collection.assetCount} assets</p>
+            <p class="text-xs text-gray-400 mt-2">{collection.assetCount} {collection.assetCount === 1 ? 'asset' : 'assets'}</p>
           </div>
         </a>
       {/each}

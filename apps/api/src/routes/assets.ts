@@ -1,6 +1,15 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { eq, desc, sql, ilike, and, inArray } from 'drizzle-orm';
-import { getDb, assets, tags, assetTags, aiAnalysis, auditLog } from '../db/index.js';
+import {
+  getDb,
+  assets,
+  tags,
+  assetTags,
+  aiAnalysis,
+  auditLog,
+  collections,
+  collectionAssets,
+} from '../db/index.js';
 import { getDownloadUrl, getStreamUrl, deleteFromStorage, storageKey } from '../lib/storage.js';
 import { requireAuth, requireRole } from '../plugins/session.js';
 import {
@@ -98,6 +107,14 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
       where: eq(aiAnalysis.assetId, id),
     });
 
+    // Get collections this asset is in
+    const inCollections = await db
+      .select({ id: collections.id, name: collections.name })
+      .from(collectionAssets)
+      .innerJoin(collections, eq(collections.id, collectionAssets.collectionId))
+      .where(eq(collectionAssets.assetId, id))
+      .orderBy(collections.name);
+
     // Generate streaming/thumbnail URLs if keys exist (regardless of status)
     // Use proxy MP4 for streaming (HLS with signed URLs doesn't work because
     // the m3u8 playlist references relative .ts segments that lack auth)
@@ -114,6 +131,7 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
       ...asset,
       tags: assetTagRows.map((r) => r.tag),
       aiAnalysis: analysis || null,
+      collections: inCollections,
       streamUrl,
       thumbnailUrl,
     };

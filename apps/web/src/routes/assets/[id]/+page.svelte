@@ -2,7 +2,9 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$api/client';
+  import { auth } from '$lib/stores/auth';
   import VideoPlayer from '$components/player/VideoPlayer.svelte';
+  import AddToCollection from '$components/collections/AddToCollection.svelte';
 
   let asset = $state(null);
   let loading = $state(true);
@@ -206,6 +208,35 @@
               Add
             </button>
           </form>
+        </div>
+
+        <!-- Collections -->
+        <div>
+          <h3 class="text-sm font-semibold mb-2">Collections</h3>
+          {#if asset.collections?.length}
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              {#each asset.collections as col}
+                <a
+                  href="/collections/{col.id}"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950 hover:text-blue-700 dark:hover:text-blue-400 rounded-full transition-colors"
+                >
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                  </svg>
+                  {col.name}
+                </a>
+              {/each}
+            </div>
+          {:else}
+            <p class="text-xs text-gray-500 mb-2">Not in any collection</p>
+          {/if}
+          {#if $auth.user?.role === 'admin' || $auth.user?.role === 'editor'}
+            <AddToCollection
+              assetId={asset.id}
+              currentCollections={asset.collections || []}
+              onAdded={loadAsset}
+            />
+          {/if}
         </div>
 
         <!-- Technical metadata -->
