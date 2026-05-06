@@ -4,6 +4,15 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  /* ----- typography -----
+     Inter for UI (frame.io-style), JetBrains Mono for code/numbers
+     when needed. cv11 enables single-storey 'a'; ss03 enables
+     curved 'l' that matches the grotesque feel. */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+    monospace;
+
   /* ----- frame.io-inspired charcoal palette -----
      We override the gray scale so all the existing dark:gray-* utility
      classes pick up the new tones automatically. */
@@ -36,6 +45,23 @@
 html.dark body {
   background: #0E1015;
   color: #E5E7EB;
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Tabular nums for stat counts; opentype features for crisper UI text */
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Use tabular figures for stat numbers and counts so they don't jitter */
+.tabular-nums,
+[class*="text-3xl"],
+.font-bold + .text-3xl {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Selection highlight in the new accent */
