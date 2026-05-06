@@ -5,6 +5,7 @@ import * as assetsSchema from './schema/assets.js';
 import * as collectionsSchema from './schema/collections.js';
 import * as auditSchema from './schema/audit.js';
 import * as aiAnalysisSchema from './schema/ai-analysis.js';
+import * as settingsSchema from './schema/settings.js';
 
 const schema = {
   ...usersSchema,
@@ -12,6 +13,7 @@ const schema = {
   ...collectionsSchema,
   ...auditSchema,
   ...aiAnalysisSchema,
+  ...settingsSchema,
 };
 
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
@@ -32,3 +34,4 @@ export { assets, tags, assetTags } from './schema/assets.js';
 export { collections, collectionAssets } from './schema/collections.js';
 export { auditLog } from './schema/audit.js';
 export { aiAnalysis } from './schema/ai-analysis.js';
+export { notificationPreferences, accountSettings } from './schema/settings.js';

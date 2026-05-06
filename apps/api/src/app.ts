@@ -6,6 +6,7 @@ import { authRoutes } from './routes/auth.js';
 import { collectionRoutes } from './routes/collections.js';
 import { searchRoutes } from './routes/search.js';
 import { userRoutes } from './routes/users.js';
+import { settingsRoutes } from './routes/settings.js';
 import { tusPlugin } from './plugins/tus.js';
 import sessionPlugin from './plugins/session.js';
 
@@ -46,6 +47,7 @@ export async function buildApp() {
   await app.register(collectionRoutes, { prefix: '/api/collections' });
   await app.register(searchRoutes, { prefix: '/api/search' });
   await app.register(userRoutes, { prefix: '/api/users' });
+  await app.register(settingsRoutes, { prefix: '/api/settings' });
 
   return app;
 }
