@@ -10,8 +10,10 @@
 
   let { children } = $props();
 
-  // Routes that don't require authentication
-  const PUBLIC_ROUTES = ['/login', '/signup'];
+  // Auth pages: visible to logged-out users only (logged-in users get bounced home)
+  const AUTH_ROUTES = ['/login', '/signup'];
+  // Fully public pages: visible to everyone, no nav chrome
+  const PUBLIC_ROUTES = ['/share'];
 
   let menuOpen = $state(false);
 
@@ -26,23 +28,30 @@
     }
   });
 
-  // Redirect to /login when there's no user (except on public routes)
+  function pathMatches(path, prefixes) {
+    return prefixes.some((p) => path === p || path.startsWith(p + '/'));
+  }
+
+  // Redirect logic:
+  // - Logged-out user on a private page -> /login
+  // - Logged-in user on an auth page (login/signup) -> /
+  // - Public pages (/share) are accessible either way
   $effect(() => {
     if ($auth.loading) return;
     const path = $page.url.pathname;
-    const isPublic = PUBLIC_ROUTES.some((p) => path === p || path.startsWith(p + '/'));
-    if (!$auth.user && !isPublic) {
+    const isAuth = pathMatches(path, AUTH_ROUTES);
+    const isPublic = pathMatches(path, PUBLIC_ROUTES);
+    if (!$auth.user && !isAuth && !isPublic) {
       goto('/login');
     }
-    if ($auth.user && isPublic) {
+    if ($auth.user && isAuth) {
       goto('/');
     }
   });
 
-  let isPublicRoute = $derived(
-    PUBLIC_ROUTES.some(
-      (p) => $page.url.pathname === p || $page.url.pathname.startsWith(p + '/')
-    )
+  // Render without nav chrome for both auth and public routes
+  let isChromelessRoute = $derived(
+    pathMatches($page.url.pathname, [...AUTH_ROUTES, ...PUBLIC_ROUTES])
   );
 
   let canUpload = $derived(
@@ -56,7 +65,7 @@
   }
 </script>
 
-{#if isPublicRoute}
+{#if isChromelessRoute}
   {@render children()}
 {:else if $auth.loading || !$auth.user}
   <div class="min-h-screen flex items-center justify-center">
