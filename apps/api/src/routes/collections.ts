@@ -33,9 +33,12 @@ async function recursiveAssetCounts(
     GROUP BY d.root_id
   `);
   // drizzle returns { rows: [...] } for raw execute on pg
-  const list: Array<{ root_id: string; asset_count: number }> =
-    (rows as { rows?: Array<{ root_id: string; asset_count: number }> }).rows ??
-    (rows as Array<{ root_id: string; asset_count: number }>);
+  const raw = rows as unknown as
+    | { rows?: Array<{ root_id: string; asset_count: number }> }
+    | Array<{ root_id: string; asset_count: number }>;
+  const list: Array<{ root_id: string; asset_count: number }> = Array.isArray(raw)
+    ? raw
+    : raw.rows ?? [];
   for (const row of list) {
     result.set(row.root_id, Number(row.asset_count));
   }
