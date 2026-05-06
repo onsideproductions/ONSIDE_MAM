@@ -40,6 +40,12 @@
   let canUpload = $derived(
     $auth.user?.role === 'admin' || $auth.user?.role === 'editor'
   );
+
+  function isActive(prefix) {
+    const path = $page.url.pathname;
+    if (prefix === '/') return path === '/';
+    return path === prefix || path.startsWith(prefix + '/');
+  }
 </script>
 
 {#if isPublicRoute}
@@ -52,19 +58,38 @@
   <div class="h-full flex flex-col">
     <!-- Top nav -->
     <header class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-3 flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-6">
-        <a href="/" class="text-xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">
-          ONSIDE MAM
+      <div class="flex items-center gap-8">
+        <a href="/" class="flex items-center gap-2 text-base font-semibold tracking-tight text-gray-100">
+          <span class="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
+          ONSIDE
         </a>
-        <nav class="flex items-center gap-4">
-          <a href="/assets" class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+        <nav class="flex items-center gap-1">
+          <a
+            href="/assets"
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors
+              {isActive('/assets')
+                ? 'bg-gray-800 text-gray-100'
+                : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800/60'}"
+          >
             Assets
           </a>
-          <a href="/collections" class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+          <a
+            href="/collections"
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors
+              {isActive('/collections')
+                ? 'bg-gray-800 text-gray-100'
+                : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800/60'}"
+          >
             Collections
           </a>
           {#if canUpload}
-            <a href="/upload" class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+            <a
+              href="/upload"
+              class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors
+                {isActive('/upload')
+                  ? 'bg-gray-800 text-gray-100'
+                  : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800/60'}"
+            >
               Upload
             </a>
           {/if}

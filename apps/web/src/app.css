@@ -1,16 +1,61 @@
 @import 'tailwindcss';
 
-:root {
-  --color-primary: #2563eb;
-  --color-primary-dark: #1d4ed8;
-  --color-surface: #ffffff;
-  --color-surface-dark: #1e1e2e;
-  --color-muted: #64748b;
+/* Force dark mode by class, applied to <html> in app.html */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* ----- frame.io-inspired charcoal palette -----
+     We override the gray scale so all the existing dark:gray-* utility
+     classes pick up the new tones automatically. */
+  --color-gray-50:  #F2F4F7;
+  --color-gray-100: #E5E7EB;
+  --color-gray-200: #D5DAE2;
+  --color-gray-300: #B8C0CC;
+  --color-gray-400: #8B95A1;
+  --color-gray-500: #6B7385;
+  --color-gray-600: #3A4150;
+  --color-gray-700: #252932;
+  --color-gray-800: #1A1D24;
+  --color-gray-900: #14171F;
+  --color-gray-950: #0E1015;
+
+  /* ----- electric cyan accent (replaces the default blue) ----- */
+  --color-blue-50:  #E5F4FB;
+  --color-blue-100: #BFE6F4;
+  --color-blue-200: #90D2EA;
+  --color-blue-300: #5DBDDF;
+  --color-blue-400: #34A8D2;
+  --color-blue-500: #1697C5;
+  --color-blue-600: #1689B5;
+  --color-blue-700: #126F94;
+  --color-blue-800: #0E5572;
+  --color-blue-900: #0A3D52;
+  --color-blue-950: #0A2A3A;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-surface: #1e1e2e;
-    --color-muted: #94a3b8;
-  }
+html.dark body {
+  background: #0E1015;
+  color: #E5E7EB;
+}
+
+/* Selection highlight in the new accent */
+::selection {
+  background: #1697C5;
+  color: #ffffff;
+}
+
+/* Scrollbar styling for the dark theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #14171F;
+}
+::-webkit-scrollbar-thumb {
+  background: #252932;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3A4150;
 }
