@@ -4,6 +4,8 @@
   import { goto } from '$app/navigation';
   import { api } from '$api/client';
   import { auth } from '$lib/stores/auth';
+  import { toast } from '$lib/stores/toast';
+  import { confirm } from '$lib/stores/confirm';
   import AssetCard from '$components/assets/AssetCard.svelte';
 
   let collection = $state(null);
@@ -79,8 +81,15 @@
   }
 
   async function deleteCollection() {
-    if (!confirm(`Delete "${collection.name}"? Assets will not be deleted.`)) return;
+    const ok = await confirm.ask({
+      title: `Delete "${collection.name}"?`,
+      message: 'Subfolders will be moved to the root. Assets in this collection will not be deleted.',
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     await api.delete(`/collections/${collectionId}`);
+    toast.success(`Deleted "${collection.name}"`);
     if (collection.breadcrumb && collection.breadcrumb.length > 1) {
       const parent = collection.breadcrumb[collection.breadcrumb.length - 2];
       await goto(`/collections/${parent.id}`);
@@ -90,8 +99,13 @@
   }
 
   async function removeAsset(assetId, assetTitle) {
-    if (!confirm(`Remove "${assetTitle}" from this collection?`)) return;
+    const ok = await confirm.ask({
+      message: `Remove "${assetTitle}" from this collection?`,
+      confirmText: 'Remove',
+    });
+    if (!ok) return;
     await api.delete(`/collections/${collectionId}/assets/${assetId}`);
+    toast.success(`Removed "${assetTitle}"`);
     await loadCollection();
   }
 </script>

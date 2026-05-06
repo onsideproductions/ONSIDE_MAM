@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { api } from '$api/client';
   import { auth } from '$lib/stores/auth';
+  import { toast } from '$lib/stores/toast';
   import VideoPlayer from '$components/player/VideoPlayer.svelte';
   import AddToCollection from '$components/collections/AddToCollection.svelte';
 
@@ -11,12 +12,36 @@
   let editingTitle = $state(false);
   let newTitle = $state('');
   let newTag = $state('');
+  let allTags = $state([]);
+  let showSuggestions = $state(false);
 
   const assetId = $page.params.id;
 
-  onMount(async () => {
-    await loadAsset();
+  let canEdit = $derived(
+    $auth.user?.role === 'admin' || $auth.user?.role === 'editor'
+  );
+
+  // Suggest tags that match what the user is typing and aren't already on the asset
+  let tagSuggestions = $derived.by(() => {
+    const q = newTag.trim().toLowerCase();
+    if (!q) return [];
+    const existing = new Set((asset?.tags ?? []).map((t) => t.name.toLowerCase()));
+    return allTags
+      .filter((t) => t.name.toLowerCase().includes(q) && !existing.has(t.name.toLowerCase()))
+      .slice(0, 8);
   });
+
+  onMount(async () => {
+    await Promise.all([loadAsset(), loadAllTags()]);
+  });
+
+  async function loadAllTags() {
+    try {
+      allTags = await api.get('/search/tags', { silent: true });
+    } catch {
+      allTags = [];
+    }
+  }
 
   async function loadAsset() {
     loading = true;
@@ -38,11 +63,14 @@
     editingTitle = false;
   }
 
-  async function addTag() {
-    if (!newTag.trim()) return;
-    await api.post(`/assets/${assetId}/tags`, { tagNames: [newTag.trim()] });
+  async function addTag(name = newTag) {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return;
+    await api.post(`/assets/${assetId}/tags`, { tagNames: [trimmed] });
     newTag = '';
-    await loadAsset();
+    showSuggestions = false;
+    toast.success(`Tagged "${trimmed}"`);
+    await Promise.all([loadAsset(), loadAllTags()]);
   }
 
   async function removeTag(tagId) {
@@ -57,6 +85,7 @@
 
   async function reanalyze() {
     await api.post(`/assets/${assetId}/analyze`);
+    toast.success('AI analysis queued');
     await loadAsset();
   }
 
@@ -114,7 +143,7 @@
       <div class="p-5 space-y-6">
         <!-- Title -->
         <div>
-          {#if editingTitle}
+          {#if editingTitle && canEdit}
             <form onsubmit={(e) => { e.preventDefault(); updateTitle(); }}>
               <input
                 bind:value={newTitle}
@@ -128,9 +157,9 @@
             </form>
           {:else}
             <h1
-              class="text-lg font-bold cursor-pointer hover:text-blue-600 transition-colors"
-              onclick={() => editingTitle = true}
-              title="Click to edit"
+              class="text-lg font-bold {canEdit ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}"
+              onclick={() => canEdit && (editingTitle = true)}
+              title={canEdit ? 'Click to edit' : ''}
             >
               {asset.title}
             </h1>
@@ -198,20 +227,45 @@
             {#each asset.tags || [] as tag}
               <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-full">
                 {tag.name}
-                <button onclick={() => removeTag(tag.id)} class="hover:text-red-500 ml-0.5">&times;</button>
+                {#if canEdit}
+                  <button onclick={() => removeTag(tag.id)} class="hover:text-red-500 ml-0.5" aria-label="Remove tag">&times;</button>
+                {/if}
               </span>
             {/each}
+            {#if !asset.tags?.length}
+              <p class="text-xs text-gray-500">No tags yet</p>
+            {/if}
           </div>
-          <form onsubmit={(e) => { e.preventDefault(); addTag(); }} class="flex gap-2">
-            <input
-              bind:value={newTag}
-              placeholder="Add tag..."
-              class="flex-1 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <button type="submit" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              Add
-            </button>
-          </form>
+          {#if canEdit}
+            <form onsubmit={(e) => { e.preventDefault(); addTag(); }} class="relative flex gap-2">
+              <input
+                bind:value={newTag}
+                onfocus={() => showSuggestions = true}
+                onblur={() => setTimeout(() => showSuggestions = false, 150)}
+                placeholder="Add tag..."
+                class="flex-1 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                autocomplete="off"
+              />
+              <button type="submit" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                Add
+              </button>
+
+              {#if showSuggestions && tagSuggestions.length > 0}
+                <div class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                  {#each tagSuggestions as s}
+                    <button
+                      type="button"
+                      onmousedown={(e) => { e.preventDefault(); addTag(s.name); }}
+                      class="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between"
+                    >
+                      <span>{s.name}</span>
+                      <span class="text-xs text-gray-400">{s.assetCount}</span>
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            </form>
+          {/if}
         </div>
 
         <!-- Collections -->

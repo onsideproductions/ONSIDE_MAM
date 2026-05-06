@@ -2,6 +2,7 @@
   import { api } from '$api/client';
   import { auth } from '$lib/stores/auth';
   import { toast } from '$lib/stores/toast';
+  import { confirm } from '$lib/stores/confirm';
 
   let {
     selectedIds = [],
@@ -49,8 +50,15 @@
   }
 
   async function deleteSelected() {
-    if (!confirm(`Delete ${selectedIds.length} asset${selectedIds.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
     const count = selectedIds.length;
+    const ok = await confirm.ask({
+      title: `Delete ${count} ${count === 1 ? 'asset' : 'assets'}?`,
+      message:
+        'This will permanently remove the assets and all their files (originals, proxies, thumbnails). This cannot be undone.',
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     await api.post('/assets/bulk-delete', { assetIds: selectedIds });
     toast.success(`Deleted ${count} ${count === 1 ? 'asset' : 'assets'}`);
     onChange();
