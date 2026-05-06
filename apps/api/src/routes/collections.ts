@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { eq, sql, isNull } from 'drizzle-orm';
 import { getDb, collections, collectionAssets, assets, auditLog } from '../db/index.js';
+import { requireAuth, requireRole } from '../plugins/session.js';
 
 export const collectionRoutes: FastifyPluginAsync = async (app) => {
   // List root collections (no parent)
@@ -67,8 +68,9 @@ export const collectionRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
-  // Create collection
+  // Create collection (editor/admin)
   app.post('/', async (request) => {
+    const user = requireRole(request, 'admin', 'editor');
     const db = getDb();
     const { name, description, parentId } = request.body as any;
 
@@ -78,7 +80,7 @@ export const collectionRoutes: FastifyPluginAsync = async (app) => {
         name,
         description,
         parentId,
-        createdBy: 'system', // TODO: from auth session
+        createdBy: user.id,
       })
       .returning();
 
@@ -93,8 +95,9 @@ export const collectionRoutes: FastifyPluginAsync = async (app) => {
     return collection;
   });
 
-  // Update collection
+  // Update collection (editor/admin)
   app.patch<{ Params: { id: string } }>('/:id', async (request, reply) => {
+    requireRole(request, 'admin', 'editor');
     const db = getDb();
     const { id } = request.params;
     const { name, description, parentId, coverAssetId } = request.body as any;
@@ -117,8 +120,9 @@ export const collectionRoutes: FastifyPluginAsync = async (app) => {
     return updated[0];
   });
 
-  // Delete collection
+  // Delete collection (admin only)
   app.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
+    requireRole(request, 'admin');
     const db = getDb();
     const { id } = request.params;
 
@@ -131,8 +135,9 @@ export const collectionRoutes: FastifyPluginAsync = async (app) => {
     return { success: true };
   });
 
-  // Add asset to collection
+  // Add asset to collection (editor/admin)
   app.post<{ Params: { id: string } }>('/:id/assets', async (request) => {
+    requireRole(request, 'admin', 'editor');
     const db = getDb();
     const { id } = request.params;
     const { assetId } = request.body as { assetId: string };
@@ -152,10 +157,11 @@ export const collectionRoutes: FastifyPluginAsync = async (app) => {
     return { success: true };
   });
 
-  // Remove asset from collection
+  // Remove asset from collection (editor/admin)
   app.delete<{ Params: { id: string; assetId: string } }>(
     '/:id/assets/:assetId',
     async (request) => {
+      requireRole(request, 'admin', 'editor');
       const db = getDb();
       const { id, assetId } = request.params;
 

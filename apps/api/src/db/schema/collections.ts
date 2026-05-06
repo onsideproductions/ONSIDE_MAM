@@ -20,9 +20,7 @@ export const collections = pgTable(
     coverAssetId: text('cover_asset_id').references(() => assets.id, {
       onDelete: 'set null',
     }),
-    createdBy: text('created_by')
-      .notNull()
-      .references(() => users.id),
+    createdBy: text('created_by').references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

@@ -11,6 +11,8 @@ import {
   type ThumbnailJobData,
 } from '../lib/queue.js';
 import { env } from '../lib/config.js';
+import { getAuth } from '../lib/auth.js';
+import { fromNodeHeaders } from 'better-auth/node';
 
 export const tusPlugin: FastifyPluginAsync = async (app) => {
   const config = env();
@@ -56,6 +58,20 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
     },
     async onUploadCreate(req, res, upload) {
       try {
+        // Require an authenticated user (admin/editor) to upload.
+        // viewers can browse but not upload.
+        const auth = getAuth();
+        const sessionResult = await auth.api.getSession({
+          headers: fromNodeHeaders(req.headers),
+        });
+        const sessionUser = sessionResult?.user;
+        if (!sessionUser) {
+          throw { status_code: 401, body: 'Authentication required to upload\n' };
+        }
+        if (sessionUser.role !== 'admin' && sessionUser.role !== 'editor') {
+          throw { status_code: 403, body: 'Editor or admin role required to upload\n' };
+        }
+
         // Create asset record in database
         const db = getDb();
         const metadata = upload.metadata || {};
@@ -64,7 +80,10 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
 
         const assetId = upload.id.split('/')[1]; // Extract from originals/{assetId}/{filename}
 
-        app.log.info({ assetId, filename, mimeType, uploadId: upload.id }, 'tus: onUploadCreate');
+        app.log.info(
+          { assetId, filename, mimeType, uploadId: upload.id, userId: sessionUser.id },
+          'tus: onUploadCreate'
+        );
 
         await db.insert(assets).values({
           id: assetId,
@@ -74,7 +93,7 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
           fileSize: upload.size || 0,
           status: 'uploading',
           storageKey: upload.id,
-          // createdBy will be set once auth is wired up
+          createdBy: sessionUser.id,
         });
 
         return res;

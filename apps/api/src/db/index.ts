@@ -27,7 +27,7 @@ export function getDb() {
 }
 
 export { schema };
-export { users } from './schema/users.js';
+export { user, users, session, account, verification } from './schema/users.js';
 export { assets, tags, assetTags } from './schema/assets.js';
 export { collections, collectionAssets } from './schema/collections.js';
 export { auditLog } from './schema/audit.js';

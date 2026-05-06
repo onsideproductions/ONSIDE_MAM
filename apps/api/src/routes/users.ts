@@ -1,10 +1,17 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { getDb, users } from '../db/index.js';
+import { requireAuth, requireRole } from '../plugins/session.js';
 
 export const userRoutes: FastifyPluginAsync = async (app) => {
+  // Current user
+  app.get('/me', async (request) => {
+    return request.user;
+  });
+
   // List users (admin only)
-  app.get('/', async () => {
+  app.get('/', async (request) => {
+    requireRole(request, 'admin');
     const db = getDb();
     const result = await db
       .select({
@@ -12,9 +19,8 @@ export const userRoutes: FastifyPluginAsync = async (app) => {
         email: users.email,
         name: users.name,
         role: users.role,
-        avatarUrl: users.avatarUrl,
+        image: users.image,
         createdAt: users.createdAt,
-        lastLoginAt: users.lastLoginAt,
       })
       .from(users)
       .orderBy(users.name);
@@ -33,9 +39,8 @@ export const userRoutes: FastifyPluginAsync = async (app) => {
         email: users.email,
         name: users.name,
         role: users.role,
-        avatarUrl: users.avatarUrl,
+        image: users.image,
         createdAt: users.createdAt,
-        lastLoginAt: users.lastLoginAt,
       })
       .from(users)
       .where(eq(users.id, id));
@@ -47,18 +52,28 @@ export const userRoutes: FastifyPluginAsync = async (app) => {
     return user[0];
   });
 
-  // Update user role (admin only)
+  // Update user. Users can update their own name/image.
+  // Only admins can change role or update someone else.
   app.patch<{ Params: { id: string } }>('/:id', async (request, reply) => {
+    const me = requireAuth(request);
     const db = getDb();
     const { id } = request.params;
-    const { name, role, avatarUrl } = request.body as any;
+    const { name, role, image } = request.body as any;
+
+    if (id !== me.id && me.role !== 'admin') {
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
+    if (role !== undefined && me.role !== 'admin') {
+      return reply.status(403).send({ error: 'Only admins can change roles' });
+    }
 
     const updated = await db
       .update(users)
       .set({
         ...(name && { name }),
         ...(role && { role }),
-        ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(image !== undefined && { image }),
+        updatedAt: new Date(),
       })
       .where(eq(users.id, id))
       .returning({
@@ -66,7 +81,7 @@ export const userRoutes: FastifyPluginAsync = async (app) => {
         email: users.email,
         name: users.name,
         role: users.role,
-        avatarUrl: users.avatarUrl,
+        image: users.image,
       });
 
     if (!updated.length) {

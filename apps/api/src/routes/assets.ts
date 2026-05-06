@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { eq, desc, sql, ilike, and, inArray } from 'drizzle-orm';
 import { getDb, assets, tags, assetTags, aiAnalysis, auditLog } from '../db/index.js';
 import { getDownloadUrl, getStreamUrl, deleteFromStorage, storageKey } from '../lib/storage.js';
+import { requireAuth, requireRole } from '../plugins/session.js';
 import {
   getQueue,
   QUEUE_NAMES,
@@ -118,8 +119,9 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
-  // Update asset metadata
+  // Update asset metadata (editor/admin)
   app.patch<{ Params: { id: string } }>('/:id', async (request, reply) => {
+    requireRole(request, 'admin', 'editor');
     const db = getDb();
     const { id } = request.params;
     const { title, description, metadata: meta } = request.body as any;
@@ -151,8 +153,9 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
     return updated[0];
   });
 
-  // Delete asset
+  // Delete asset (admin only)
   app.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
+    requireRole(request, 'admin');
     const db = getDb();
     const { id } = request.params;
 
@@ -190,8 +193,9 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
     return { success: true };
   });
 
-  // Add tags to asset
+  // Add tags to asset (editor/admin)
   app.post<{ Params: { id: string } }>('/:id/tags', async (request) => {
+    requireRole(request, 'admin', 'editor');
     const db = getDb();
     const { id } = request.params;
     const { tagNames } = request.body as { tagNames: string[] };
@@ -226,10 +230,11 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
     return { tags: results };
   });
 
-  // Remove tag from asset
+  // Remove tag from asset (editor/admin)
   app.delete<{ Params: { id: string; tagId: string } }>(
     '/:id/tags/:tagId',
     async (request) => {
+      requireRole(request, 'admin', 'editor');
       const db = getDb();
       const { id, tagId } = request.params;
 
@@ -241,8 +246,9 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
     }
   );
 
-  // Get download URL for asset
+  // Get download URL for asset (any logged-in user)
   app.get<{ Params: { id: string } }>('/:id/download', async (request, reply) => {
+    requireAuth(request);
     const db = getDb();
     const { id } = request.params;
     const { type = 'original' } = request.query as { type?: string };
@@ -288,8 +294,9 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
     return { url, filename };
   });
 
-  // Trigger AI re-analysis
+  // Trigger AI re-analysis (editor/admin)
   app.post<{ Params: { id: string } }>('/:id/analyze', async (request, reply) => {
+    requireRole(request, 'admin', 'editor');
     const db = getDb();
     const { id } = request.params;
 

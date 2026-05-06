@@ -16,12 +16,18 @@ export function getAuth() {
       database: pool,
       secret: config.AUTH_SECRET,
       baseURL: config.AUTH_URL,
+      // Trust requests from the configured web origin
+      trustedOrigins: [config.AUTH_URL],
       emailAndPassword: {
         enabled: true,
+        // For an internal team tool, no email verification step
+        requireEmailVerification: false,
+        // Allow registration; we'll lock it down once the org is set up
+        autoSignIn: true,
       },
       session: {
         expiresIn: 60 * 60 * 24 * 7, // 7 days
-        updateAge: 60 * 60 * 24, // 1 day
+        updateAge: 60 * 60 * 24, // refresh once per day
       },
       user: {
         additionalFields: {
@@ -29,8 +35,12 @@ export function getAuth() {
             type: 'string',
             required: false,
             defaultValue: 'viewer',
+            input: false, // role is not user-settable on signup
           },
         },
+      },
+      advanced: {
+        cookiePrefix: 'onside-mam',
       },
     });
   }

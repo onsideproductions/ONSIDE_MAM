@@ -7,6 +7,7 @@ import { collectionRoutes } from './routes/collections.js';
 import { searchRoutes } from './routes/search.js';
 import { userRoutes } from './routes/users.js';
 import { tusPlugin } from './plugins/tus.js';
+import sessionPlugin from './plugins/session.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -31,11 +32,16 @@ export async function buildApp() {
     uptime: process.uptime(),
   }));
 
+  // Auth routes - register first so they don't get the global JSON parser
+  await app.register(authRoutes, { prefix: '/api/auth' });
+
+  // Session decorator for downstream routes
+  await app.register(sessionPlugin);
+
   // Upload (tus protocol)
   await app.register(tusPlugin);
 
   // API routes
-  await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(assetRoutes, { prefix: '/api/assets' });
   await app.register(collectionRoutes, { prefix: '/api/collections' });
   await app.register(searchRoutes, { prefix: '/api/search' });
