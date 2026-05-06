@@ -9,6 +9,7 @@
   import CreateShareDialog from '$components/share/CreateShareDialog.svelte';
   import CommentsPanel from '$components/comments/CommentsPanel.svelte';
   import ActivityPanel from '$components/activity/ActivityPanel.svelte';
+  import TranscriptPanel from '$components/transcript/TranscriptPanel.svelte';
 
   let asset = $state(null);
   let loading = $state(true);
@@ -153,24 +154,31 @@
     <!-- Sidebar -->
     <div class="w-full lg:w-96 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 flex flex-col">
       <!-- Tab switcher -->
-      <div class="flex border-b border-gray-200 dark:border-gray-800 shrink-0">
+      <div class="flex border-b border-gray-200 dark:border-gray-800 shrink-0 overflow-x-auto">
         <button
           onclick={() => activeTab = 'comments'}
-          class="flex-1 px-3 py-3 text-sm font-medium transition-colors
+          class="flex-1 min-w-[80px] px-2 py-3 text-xs sm:text-sm font-medium transition-colors
             {activeTab === 'comments' ? 'text-gray-100 border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-200'}"
         >
           Comments
         </button>
         <button
+          onclick={() => activeTab = 'transcript'}
+          class="flex-1 min-w-[80px] px-2 py-3 text-xs sm:text-sm font-medium transition-colors
+            {activeTab === 'transcript' ? 'text-gray-100 border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-200'}"
+        >
+          Transcript
+        </button>
+        <button
           onclick={() => activeTab = 'activity'}
-          class="flex-1 px-3 py-3 text-sm font-medium transition-colors
+          class="flex-1 min-w-[80px] px-2 py-3 text-xs sm:text-sm font-medium transition-colors
             {activeTab === 'activity' ? 'text-gray-100 border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-200'}"
         >
           Activity
         </button>
         <button
           onclick={() => activeTab = 'info'}
-          class="flex-1 px-3 py-3 text-sm font-medium transition-colors
+          class="flex-1 min-w-[80px] px-2 py-3 text-xs sm:text-sm font-medium transition-colors
             {activeTab === 'info' ? 'text-gray-100 border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-200'}"
         >
           Details
@@ -188,6 +196,14 @@
                 .filter((c) => c.timecode != null && !c.parentId)
                 .map((c) => ({ id: c.id, timecode: c.timecode, color: c.resolved ? '#6B7385' : undefined }));
             }}
+          />
+        </div>
+      {:else if activeTab === 'transcript'}
+        <div class="flex-1 min-h-0">
+          <TranscriptPanel
+            {assetId}
+            {currentTime}
+            seek={(t) => playerControls?.seek(t)}
           />
         </div>
       {:else if activeTab === 'activity'}

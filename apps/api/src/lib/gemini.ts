@@ -94,3 +94,67 @@ export async function analyzeImage(
 ): Promise<GeminiAnalysisResult> {
   return analyzeVideoFrames([imagePath]);
 }
+
+export interface TranscribeResult {
+  language: string;
+  fullText: string;
+  segments: { start: number; end: number; text: string }[];
+}
+
+/**
+ * Transcribe audio with Gemini. Reads the audio file inline.
+ * Suitable for files <20MB (about 30 minutes of 16kHz mono Opus at 24kbps).
+ */
+export async function transcribeAudio(
+  audioPath: string,
+  mimeType = 'audio/ogg'
+): Promise<TranscribeResult> {
+  const genAI = getGenAI();
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+  const data = await fs.readFile(audioPath);
+
+  const prompt = `Transcribe the spoken audio. Return ONLY valid JSON in this exact shape (no markdown, no commentary):
+{
+  "language": "ISO 639-1 code, e.g. en",
+  "segments": [
+    {"start": 0.0, "end": 4.2, "text": "First sentence."},
+    {"start": 4.2, "end": 9.6, "text": "Second sentence."}
+  ]
+}
+
+Rules:
+- One segment per spoken sentence or natural pause (typically 2-15 seconds each).
+- Timestamps in seconds with up to 2 decimals.
+- Cover the entire audio without gaps.
+- If there is no speech, return {"language": "en", "segments": []}.`;
+
+  const result = await model.generateContent([
+    prompt,
+    {
+      inlineData: {
+        data: data.toString('base64'),
+        mimeType,
+      },
+    },
+  ]);
+
+  const text = result.response.text();
+  const jsonStr = text.replace(/```(?:json)?\s*/g, '').replace(/```\s*$/g, '').trim();
+  const parsed = JSON.parse(jsonStr) as {
+    language?: string;
+    segments?: { start: number; end: number; text: string }[];
+  };
+
+  const segments = (parsed.segments ?? []).map((s) => ({
+    start: Number(s.start) || 0,
+    end: Number(s.end) || 0,
+    text: String(s.text || '').trim(),
+  })).filter((s) => s.text);
+
+  return {
+    language: parsed.language || 'en',
+    fullText: segments.map((s) => s.text).join(' '),
+    segments,
+  };
+}

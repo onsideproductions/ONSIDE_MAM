@@ -121,6 +121,23 @@ export async function generateThumbnail(
   ]);
 }
 
+/** Extract audio for transcription. 16kHz mono Opus in OGG keeps files small. */
+export async function extractAudioForTranscription(
+  inputPath: string,
+  outputPath: string
+): Promise<void> {
+  await exec('ffmpeg', [
+    '-i', inputPath,
+    '-vn',                  // no video
+    '-ac', '1',             // mono
+    '-ar', '16000',         // 16kHz sample rate
+    '-c:a', 'libopus',
+    '-b:a', '24k',          // very compact, still intelligible
+    '-y',
+    outputPath,
+  ], { timeout: 600_000 });
+}
+
 /** Generate a sprite sheet for scrubbing preview */
 export async function generateSpriteSheet(
   inputPath: string,

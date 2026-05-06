@@ -12,5 +12,6 @@ await import('./metadata.worker.js');
 await import('./thumbnail.worker.js');
 await import('./transcode.worker.js');
 await import('./ai-analysis.worker.js');
+await import('./transcribe.worker.js');
 
 console.log('All workers started');

@@ -7,6 +7,7 @@ import {
   assetTags,
   aiAnalysis,
   collectionAssets,
+  transcripts,
 } from '../db/index.js';
 import { getStreamUrl } from '../lib/storage.js';
 
@@ -94,6 +95,7 @@ export const searchRoutes: FastifyPluginAsync = async (app) => {
           OR ${aiAnalysis.summary} ILIKE ${like}
           OR ${q} ILIKE ANY(${aiAnalysis.detectedTags})
           OR ${q} ILIKE ANY(${aiAnalysis.detectedObjects})
+          OR ${transcripts.fullText} ILIKE ${like}
         )`
       );
     }
@@ -156,6 +158,7 @@ export const searchRoutes: FastifyPluginAsync = async (app) => {
       })
       .from(assets)
       .leftJoin(aiAnalysis, eq(aiAnalysis.assetId, assets.id))
+      .leftJoin(transcripts, eq(transcripts.assetId, assets.id))
       .leftJoin(assetTags, eq(assetTags.assetId, assets.id))
       .leftJoin(tags, eq(tags.id, assetTags.tagId));
 
@@ -176,6 +179,7 @@ export const searchRoutes: FastifyPluginAsync = async (app) => {
       .select({ count: sql<number>`count(DISTINCT ${assets.id})` })
       .from(assets)
       .leftJoin(aiAnalysis, eq(aiAnalysis.assetId, assets.id))
+      .leftJoin(transcripts, eq(transcripts.assetId, assets.id))
       .leftJoin(assetTags, eq(assetTags.assetId, assets.id))
       .leftJoin(tags, eq(tags.id, assetTags.tagId));
     if (conditions.length) {

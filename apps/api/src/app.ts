@@ -10,6 +10,7 @@ import { settingsRoutes } from './routes/settings.js';
 import { shareRoutes, publicShareRoutes } from './routes/shares.js';
 import { commentRoutes } from './routes/comments.js';
 import { activityRoutes } from './routes/activity.js';
+import { transcriptRoutes } from './routes/transcripts.js';
 import { tusPlugin } from './plugins/tus.js';
 import sessionPlugin from './plugins/session.js';
 
@@ -55,6 +56,7 @@ export async function buildApp() {
   await app.register(publicShareRoutes, { prefix: '/api/public' });
   await app.register(commentRoutes, { prefix: '/api/comments' });
   await app.register(activityRoutes, { prefix: '/api/activity' });
+  await app.register(transcriptRoutes, { prefix: '/api/transcripts' });
 
   return app;
 }

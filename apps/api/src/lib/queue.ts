@@ -18,6 +18,7 @@ export const QUEUE_NAMES = {
   THUMBNAIL: 'thumbnail',
   METADATA: 'metadata',
   AI_ANALYSIS: 'ai-analysis',
+  TRANSCRIBE: 'transcribe',
 } as const;
 
 // Queue instances
@@ -72,5 +73,10 @@ export interface MetadataJobData {
 export interface AiAnalysisJobData {
   assetId: string;
   thumbnailKey: string;
+  inputKey: string;
+}
+
+export interface TranscribeJobData {
+  assetId: string;
   inputKey: string;
 }

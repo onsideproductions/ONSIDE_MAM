@@ -9,6 +9,7 @@ import {
   type MetadataJobData,
   type TranscodeJobData,
   type ThumbnailJobData,
+  type TranscribeJobData,
 } from '../lib/queue.js';
 import { env } from '../lib/config.js';
 import { getAuth } from '../lib/auth.js';
@@ -164,6 +165,13 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
         inputKey: upload.id,
         profile: 'hls',
       } satisfies TranscodeJobData);
+
+      // Queue transcription
+      const transcribeQueue = getQueue(QUEUE_NAMES.TRANSCRIBE);
+      await transcribeQueue.add('transcribe', {
+        assetId,
+        inputKey: upload.id,
+      } satisfies TranscribeJobData);
 
       return res;
     },
