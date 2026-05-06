@@ -1,6 +1,7 @@
 <script>
   import { api } from '$api/client';
   import { auth } from '$lib/stores/auth';
+  import { toast } from '$lib/stores/toast';
 
   let {
     selectedIds = [],
@@ -28,25 +29,30 @@
   }
 
   async function addToCollection(collectionId) {
-    await api.post(`/collections/${collectionId}/assets`, {
+    const collection = allCollections.find((c) => c.id === collectionId);
+    const result = await api.post(`/collections/${collectionId}/assets`, {
       assetIds: selectedIds,
     });
     showCollections = false;
+    toast.success(`Added ${result.added} ${result.added === 1 ? 'asset' : 'assets'} to ${collection?.name ?? 'collection'}`);
     onChange();
   }
 
   async function applyTags() {
     const names = tagInput.split(',').map((t) => t.trim()).filter(Boolean);
     if (!names.length) return;
-    await api.post('/assets/bulk-tag', { assetIds: selectedIds, tagNames: names });
+    const result = await api.post('/assets/bulk-tag', { assetIds: selectedIds, tagNames: names });
     tagInput = '';
     showTagInput = false;
+    toast.success(`Tagged ${selectedIds.length} ${selectedIds.length === 1 ? 'asset' : 'assets'} with ${names.length} tag${names.length === 1 ? '' : 's'}`);
     onChange();
   }
 
   async function deleteSelected() {
     if (!confirm(`Delete ${selectedIds.length} asset${selectedIds.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
+    const count = selectedIds.length;
     await api.post('/assets/bulk-delete', { assetIds: selectedIds });
+    toast.success(`Deleted ${count} ${count === 1 ? 'asset' : 'assets'}`);
     onChange();
     onClear();
   }

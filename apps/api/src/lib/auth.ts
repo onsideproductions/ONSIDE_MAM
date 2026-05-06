@@ -5,6 +5,22 @@ import { env } from './config.js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _auth: any = null;
 
+/**
+ * If this is the very first user in the system, promote them to admin
+ * automatically. This avoids the SSH bootstrap step on a fresh install.
+ */
+async function promoteIfFirstUser(pool: pg.Pool, userId: string): Promise<void> {
+  // Count users (excluding the one we just created) - if zero, this is the first
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS n FROM "user" WHERE id != $1`,
+    [userId]
+  );
+  const isFirst = (rows[0]?.n ?? 0) === 0;
+  if (isFirst) {
+    await pool.query(`UPDATE "user" SET role = 'admin' WHERE id = $1`, [userId]);
+  }
+}
+
 export function getAuth() {
   if (!_auth) {
     const config = env();
@@ -47,6 +63,20 @@ export function getAuth() {
       },
       advanced: {
         cookiePrefix: 'onside-mam',
+      },
+      databaseHooks: {
+        user: {
+          create: {
+            after: async (user: { id: string }) => {
+              try {
+                await promoteIfFirstUser(pool, user.id);
+              } catch (err) {
+                // Don't block signup if the promotion check fails
+                console.error('First-user promotion check failed:', err);
+              }
+            },
+          },
+        },
       },
     });
   }

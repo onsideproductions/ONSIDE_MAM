@@ -4,6 +4,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { auth } from '$lib/stores/auth';
+  import Toaster from '$components/ui/Toaster.svelte';
 
   let { children } = $props();
 
@@ -142,3 +143,5 @@
     </main>
   </div>
 {/if}
+
+<Toaster />

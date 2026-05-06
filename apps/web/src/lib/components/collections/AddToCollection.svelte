@@ -1,5 +1,6 @@
 <script>
   import { api } from '$api/client';
+  import { toast } from '$lib/stores/toast';
 
   let { assetId, currentCollections = [], onAdded = () => {} } = $props();
 
@@ -40,7 +41,9 @@
   }
 
   async function add(collectionId) {
+    const col = allCollections.find((c) => c.id === collectionId);
     await api.post(`/collections/${collectionId}/assets`, { assetId });
+    toast.success(`Added to ${col?.name ?? 'collection'}`);
     onAdded();
     close();
   }
@@ -51,6 +54,7 @@
     await api.post(`/collections/${created.id}/assets`, { assetId });
     // Refresh list so the new collection shows up
     allCollections = await api.get('/collections/all');
+    toast.success(`Created "${created.name}" and added asset`);
     onAdded();
     close();
   }

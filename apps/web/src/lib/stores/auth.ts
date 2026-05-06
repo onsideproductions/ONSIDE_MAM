@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { goto } from '$app/navigation';
+import { toast } from './toast';
 
 export interface AuthUser {
   id: string;
@@ -74,6 +75,7 @@ function createAuthStore() {
         credentials: 'include',
       });
       set({ user: null, loading: false });
+      toast.success('Signed out');
       await goto('/login');
     },
 
