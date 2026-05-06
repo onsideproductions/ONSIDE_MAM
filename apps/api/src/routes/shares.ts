@@ -3,7 +3,7 @@ import { eq, desc, and, isNull, sql } from 'drizzle-orm';
 import { getDb, shares, assets, user } from '../db/index.js';
 import { requireAuth, requireRole } from '../plugins/session.js';
 import { hashSharePassword, verifySharePassword } from '../lib/share-password.js';
-import { getStreamUrl, getDownloadUrl } from '../lib/storage.js';
+import { getStreamUrl, getPublicOrSignedUrl, getDownloadUrl } from '../lib/storage.js';
 
 interface CreateShareBody {
   assetId: string;
@@ -41,7 +41,7 @@ export const shareRoutes: FastifyPluginAsync = async (app) => {
       rows.map(async (r) => {
         let thumbnailUrl: string | null = null;
         if (r.asset?.thumbnailKey) {
-          thumbnailUrl = await getStreamUrl(r.asset.thumbnailKey);
+          thumbnailUrl = await getPublicOrSignedUrl(r.asset.thumbnailKey);
         }
         return {
           ...r.share,
@@ -260,16 +260,16 @@ async function buildSharePayload(
   let streamUrl: string | null = null;
   let streamType: 'mp4' | 'hls' | null = null;
   if (asset.proxyKey) {
-    streamUrl = await getStreamUrl(asset.proxyKey);
+    streamUrl = await getPublicOrSignedUrl(asset.proxyKey);
     streamType = 'mp4';
   } else if (asset.hlsKey) {
-    streamUrl = `/api/public/shares/${share.id}/stream.m3u8`;
+    streamUrl = await getPublicOrSignedUrl(asset.hlsKey);
     streamType = 'hls';
   }
 
   let thumbnailUrl: string | null = null;
   if (asset.thumbnailKey) {
-    thumbnailUrl = await getStreamUrl(asset.thumbnailKey);
+    thumbnailUrl = await getPublicOrSignedUrl(asset.thumbnailKey);
   }
 
   return {

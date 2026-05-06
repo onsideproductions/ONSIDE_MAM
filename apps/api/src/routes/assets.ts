@@ -13,12 +13,14 @@ import {
 import {
   getDownloadUrl,
   getStreamUrl,
+  getPublicOrSignedUrl,
   deleteFromStorage,
   storageKey,
   getS3Client,
   getBucket,
 } from '../lib/storage.js';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { env } from '../lib/config.js';
 import { requireAuth, requireRole } from '../plugins/session.js';
 import {
   getQueue,
@@ -72,12 +74,12 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
 
     const total = Number(countResult[0]?.count || 0);
 
-    // Generate signed thumbnail URLs for listing
+    // Generate thumbnail URLs (CDN if configured, signed otherwise)
     const dataWithUrls = await Promise.all(
       data.map(async (asset) => {
         let thumbnailUrl = null;
         if (asset.thumbnailKey) {
-          thumbnailUrl = await getStreamUrl(asset.thumbnailKey);
+          thumbnailUrl = await getPublicOrSignedUrl(asset.thumbnailKey);
         }
         return { ...asset, thumbnailUrl };
       })
@@ -143,22 +145,26 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(collectionAssets.assetId, id))
       .orderBy(collections.name);
 
-    // Streaming URL: prefer the proxy MP4 (broad browser support, simple,
-    // works through Cloudflare) and fall back to HLS via our rewriter
-    // endpoint only if the proxy hasn't been generated yet.
+    // Streaming URL: prefer the proxy MP4 (broad browser support, works
+    // through CDN). Fall back to HLS only if the proxy isn't ready.
+    // When WASABI_PUBLIC_URL is configured, both come straight from the CDN.
     let streamUrl: string | null = null;
     let streamType: 'hls' | 'mp4' | null = null;
     if (asset.proxyKey) {
-      streamUrl = await getStreamUrl(asset.proxyKey);
+      streamUrl = await getPublicOrSignedUrl(asset.proxyKey);
       streamType = 'mp4';
     } else if (asset.hlsKey) {
-      streamUrl = `/api/assets/${asset.id}/stream.m3u8`;
+      // With CDN, HLS playlist + segments work directly. Without CDN we
+      // need the rewriter endpoint to sign each segment.
+      streamUrl = env().WASABI_PUBLIC_URL
+        ? await getPublicOrSignedUrl(asset.hlsKey)
+        : `/api/assets/${asset.id}/stream.m3u8`;
       streamType = 'hls';
     }
 
     let thumbnailUrl: string | null = null;
     if (asset.thumbnailKey) {
-      thumbnailUrl = await getStreamUrl(asset.thumbnailKey);
+      thumbnailUrl = await getPublicOrSignedUrl(asset.thumbnailKey);
     }
 
     return {

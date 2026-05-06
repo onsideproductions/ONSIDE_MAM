@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { eq, sql, isNull, inArray } from 'drizzle-orm';
 import { getDb, collections, collectionAssets, assets, auditLog } from '../db/index.js';
-import { getStreamUrl } from '../lib/storage.js';
+import { getPublicOrSignedUrl } from '../lib/storage.js';
 import { requireRole } from '../plugins/session.js';
 
 /**
@@ -69,7 +69,7 @@ export const collectionRoutes: FastifyPluginAsync = async (app) => {
             where: eq(assets.id, c.coverAssetId),
           });
           if (cover?.thumbnailKey) {
-            coverUrl = await getStreamUrl(cover.thumbnailKey);
+            coverUrl = await getPublicOrSignedUrl(cover.thumbnailKey);
           }
         }
         return {
@@ -146,7 +146,7 @@ export const collectionRoutes: FastifyPluginAsync = async (app) => {
             where: eq(assets.id, c.coverAssetId),
           });
           if (cover?.thumbnailKey) {
-            coverUrl = await getStreamUrl(cover.thumbnailKey);
+            coverUrl = await getPublicOrSignedUrl(cover.thumbnailKey);
           }
         }
         return {
@@ -169,7 +169,7 @@ export const collectionRoutes: FastifyPluginAsync = async (app) => {
       collectionAssetsResult.map(async (r) => {
         let thumbnailUrl: string | null = null;
         if (r.asset.thumbnailKey) {
-          thumbnailUrl = await getStreamUrl(r.asset.thumbnailKey);
+          thumbnailUrl = await getPublicOrSignedUrl(r.asset.thumbnailKey);
         }
         return { ...r.asset, thumbnailUrl };
       })

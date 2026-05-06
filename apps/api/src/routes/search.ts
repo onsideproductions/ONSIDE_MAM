@@ -9,7 +9,7 @@ import {
   collectionAssets,
   transcripts,
 } from '../db/index.js';
-import { getStreamUrl } from '../lib/storage.js';
+import { getPublicOrSignedUrl } from '../lib/storage.js';
 
 type SortKey = 'relevance' | 'newest' | 'oldest' | 'longest' | 'shortest' | 'name';
 
@@ -219,7 +219,7 @@ export const searchRoutes: FastifyPluginAsync = async (app) => {
       paged.map(async (r) => {
         let thumbnailUrl: string | null = null;
         if (r.asset.thumbnailKey) {
-          thumbnailUrl = await getStreamUrl(r.asset.thumbnailKey);
+          thumbnailUrl = await getPublicOrSignedUrl(r.asset.thumbnailKey);
         }
         return {
           ...r.asset,

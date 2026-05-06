@@ -8,6 +8,10 @@ const envSchema = z.object({
   WASABI_REGION: z.string().default('eu-west-2'),
   WASABI_BUCKET: z.string().default('onside-mam'),
   WASABI_ENDPOINT: z.string().default('https://s3.eu-west-2.wasabisys.com'),
+  /** Public CDN base for cacheable assets (no trailing slash). When set,
+   *  thumbnails / proxy MP4s / HLS playlists & segments are served from
+   *  this URL instead of a signed Wasabi URL. */
+  WASABI_PUBLIC_URL: z.string().default(''),
   GEMINI_API_KEY: z.string().default(''),
   AUTH_SECRET: z.string().min(1),
   AUTH_URL: z.string().url().default('http://localhost:3000'),

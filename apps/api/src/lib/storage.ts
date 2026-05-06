@@ -33,15 +33,23 @@ export function getBucket(): string {
 export async function uploadToStorage(
   key: string,
   body: Buffer | ReadableStream,
-  contentType: string
+  contentType: string,
+  options: { cacheControl?: string } = {}
 ): Promise<void> {
   const s3 = getS3Client();
+  // Default to long cache for processed/derived files (thumbnails,
+  // proxies, HLS) since their key changes whenever they regenerate.
+  // Originals shouldn't share this default.
+  const cacheControl =
+    options.cacheControl ?? 'public, max-age=31536000, immutable';
+
   await s3.send(
     new PutObjectCommand({
       Bucket: getBucket(),
       Key: key,
       Body: body as any,
       ContentType: contentType,
+      CacheControl: cacheControl,
     })
   );
 }
@@ -82,6 +90,23 @@ export async function getStreamUrl(
     Key: key,
   });
   return getSignedUrl(s3, command, { expiresIn });
+}
+
+/**
+ * Returns a public CDN URL for a cacheable asset key when WASABI_PUBLIC_URL
+ * is configured, otherwise falls back to a signed URL.
+ *
+ * Use for objects that don't need access control: thumbnails, proxy MP4s,
+ * HLS playlists and segments. The Wasabi bucket policy must permit public
+ * reads on those prefixes for this to actually serve the file.
+ */
+export async function getPublicOrSignedUrl(key: string): Promise<string> {
+  const config = env();
+  const publicBase = config.WASABI_PUBLIC_URL.replace(/\/$/, '');
+  if (publicBase) {
+    return `${publicBase}/${key}`;
+  }
+  return getStreamUrl(key);
 }
 
 export async function getObjectHead(
