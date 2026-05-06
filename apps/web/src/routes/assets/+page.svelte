@@ -2,12 +2,54 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$api/client';
+  import { auth } from '$lib/stores/auth';
   import AssetCard from '$components/assets/AssetCard.svelte';
+  import BulkActionBar from '$components/assets/BulkActionBar.svelte';
 
   let assets = $state([]);
   let loading = $state(true);
   let pagination = $state({ page: 1, totalPages: 1, total: 0 });
   let viewMode = $state('grid');
+
+  // Bulk selection state
+  let selectedIds = $state(new Set());
+  let lastClickedIndex = $state(-1);
+
+  let canSelect = $derived(
+    $auth.user?.role === 'admin' || $auth.user?.role === 'editor'
+  );
+
+  function toggleAsset(idx, event) {
+    const asset = assets[idx];
+    if (!asset) return;
+    const next = new Set(selectedIds);
+
+    // Shift+click = range select
+    if (event?.shiftKey && lastClickedIndex >= 0 && lastClickedIndex !== idx) {
+      const [start, end] = lastClickedIndex < idx
+        ? [lastClickedIndex, idx]
+        : [idx, lastClickedIndex];
+      const select = !next.has(asset.id);
+      for (let i = start; i <= end; i++) {
+        if (select) next.add(assets[i].id);
+        else next.delete(assets[i].id);
+      }
+    } else {
+      if (next.has(asset.id)) next.delete(asset.id);
+      else next.add(asset.id);
+    }
+    selectedIds = next;
+    lastClickedIndex = idx;
+  }
+
+  function selectAllOnPage() {
+    selectedIds = new Set(assets.map((a) => a.id));
+  }
+
+  function clearSelection() {
+    selectedIds = new Set();
+    lastClickedIndex = -1;
+  }
   let allTags = $state([]);
   let allCollections = $state([]);
   let showFilters = $state(false);
@@ -131,9 +173,19 @@
 
 <div class="p-6 max-w-7xl mx-auto">
   <div class="flex items-center justify-between mb-6">
-    <div>
-      <h1 class="text-2xl font-bold">Assets</h1>
-      <p class="text-sm text-gray-500 mt-1">{pagination.total} {pagination.total === 1 ? 'asset' : 'assets'}</p>
+    <div class="flex items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold">Assets</h1>
+        <p class="text-sm text-gray-500 mt-1">{pagination.total} {pagination.total === 1 ? 'asset' : 'assets'}</p>
+      </div>
+      {#if canSelect && assets.length > 0}
+        <button
+          onclick={selectedIds.size === assets.length ? clearSelection : selectAllOnPage}
+          class="text-xs text-gray-500 hover:text-blue-600 underline"
+        >
+          {selectedIds.size === assets.length ? 'Deselect all' : `Select all on page (${assets.length})`}
+        </button>
+      {/if}
     </div>
 
     <div class="flex items-center gap-3">
@@ -308,14 +360,29 @@
     </div>
   {:else if viewMode === 'grid'}
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-      {#each assets as asset}
-        <AssetCard {asset} />
+      {#each assets as asset, idx}
+        <AssetCard
+          {asset}
+          selectable={canSelect}
+          selected={selectedIds.has(asset.id)}
+          onSelectToggle={(e) => toggleAsset(idx, e)}
+        />
       {/each}
     </div>
   {:else}
     <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800">
-      {#each assets as asset}
-        <a href="/assets/{asset.id}" class="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+      {#each assets as asset, idx}
+        <a
+          href="/assets/{asset.id}"
+          onclick={(e) => {
+            // Cmd/Ctrl/Shift + click on the row toggles selection instead of navigating
+            if (canSelect && (e.metaKey || e.ctrlKey || e.shiftKey)) {
+              e.preventDefault();
+              toggleAsset(idx, e);
+            }
+          }}
+          class="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors {selectedIds.has(asset.id) ? 'bg-blue-50 dark:bg-blue-950/30' : ''}"
+        >
           <div class="w-32 aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden shrink-0">
             {#if asset.thumbnailUrl}
               <img src={asset.thumbnailUrl} alt="" class="w-full h-full object-cover" />
@@ -366,3 +433,9 @@
     </div>
   {/if}
 </div>
+
+<BulkActionBar
+  selectedIds={Array.from(selectedIds)}
+  onClear={clearSelection}
+  onChange={() => loadAssets(pagination.page)}
+/>

@@ -312,6 +312,88 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
     return { url, filename };
   });
 
+  // ---- Bulk operations ----
+
+  // Bulk delete (admin only)
+  app.post('/bulk-delete', async (request, reply) => {
+    requireRole(request, 'admin');
+    const db = getDb();
+    const { assetIds } = request.body as { assetIds: string[] };
+    if (!assetIds?.length) return { deleted: 0 };
+
+    // Fetch the assets so we can clean up their storage keys
+    const toDelete = await db
+      .select()
+      .from(assets)
+      .where(inArray(assets.id, assetIds));
+
+    // Delete files from Wasabi (best-effort)
+    const keys = toDelete.flatMap((a) =>
+      [a.storageKey, a.proxyKey, a.hlsKey, a.thumbnailKey, a.spriteKey].filter(
+        Boolean
+      ) as string[]
+    );
+    await Promise.allSettled(keys.map((k) => deleteFromStorage(k)));
+
+    // Delete from DB (cascades to tags, AI analysis, collection links)
+    const result = await db
+      .delete(assets)
+      .where(inArray(assets.id, assetIds))
+      .returning({ id: assets.id });
+
+    if (result.length) {
+      await db.insert(auditLog).values({
+        action: 'bulk-delete',
+        entityType: 'asset',
+        entityId: null,
+        details: { count: result.length, ids: result.map((r) => r.id) },
+        ipAddress: request.ip,
+      });
+    }
+
+    return { deleted: result.length };
+  });
+
+  // Bulk add tags (editor/admin)
+  app.post('/bulk-tag', async (request) => {
+    requireRole(request, 'admin', 'editor');
+    const db = getDb();
+    const { assetIds, tagNames } = request.body as {
+      assetIds: string[];
+      tagNames: string[];
+    };
+    if (!assetIds?.length || !tagNames?.length) return { added: 0 };
+
+    // Upsert each tag and collect IDs
+    const tagIds: string[] = [];
+    for (const rawName of tagNames) {
+      const name = rawName.toLowerCase().trim();
+      if (!name) continue;
+      const existing = await db.query.tags.findFirst({ where: eq(tags.name, name) });
+      if (existing) {
+        tagIds.push(existing.id);
+      } else {
+        const [created] = await db.insert(tags).values({ name }).returning();
+        tagIds.push(created.id);
+      }
+    }
+
+    // Link every (asset, tag) pair, skipping duplicates
+    let added = 0;
+    for (const assetId of assetIds) {
+      for (const tagId of tagIds) {
+        const result = await db
+          .insert(assetTags)
+          .values({ assetId, tagId })
+          .onConflictDoNothing()
+          .returning();
+        if (result.length) added++;
+      }
+    }
+
+    return { added };
+  });
+
   // Trigger AI re-analysis (editor/admin)
   app.post<{ Params: { id: string } }>('/:id/analyze', async (request, reply) => {
     requireRole(request, 'admin', 'editor');
