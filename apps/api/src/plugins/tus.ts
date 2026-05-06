@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { Server as TusServer } from '@tus/server';
 import { S3Store } from '@tus/s3-store';
 import { nanoid } from 'nanoid';
-import { getDb, assets } from '../db/index.js';
+import { getDb, assets, auditLog } from '../db/index.js';
 import {
   getQueue,
   QUEUE_NAMES,
@@ -110,14 +110,32 @@ export const tusPlugin: FastifyPluginAsync = async (app) => {
       // Upload complete - queue processing jobs
       const assetId = upload.id.split('/')[1];
       const db = getDb();
+      const { eq } = await import('drizzle-orm');
+
+      // Look up the asset's owner so we can attribute the audit entry
+      const existing = await db.query.assets.findFirst({
+        where: eq(assets.id, assetId),
+      });
 
       // Update status to processing
       await db
         .update(assets)
         .set({ status: 'processing', fileSize: upload.offset || 0 })
-        .where(
-          (await import('drizzle-orm')).eq(assets.id, assetId)
-        );
+        .where(eq(assets.id, assetId));
+
+      // Audit
+      if (existing) {
+        await db.insert(auditLog).values({
+          action: 'upload',
+          entityType: 'asset',
+          entityId: assetId,
+          userId: existing.createdBy,
+          details: {
+            filename: existing.originalFilename,
+            fileSize: upload.offset || 0,
+          },
+        });
+      }
 
       // Queue metadata extraction first
       const metadataQueue = getQueue(QUEUE_NAMES.METADATA);

@@ -26,6 +26,7 @@
       heading: 'Admin',
       items: [
         { href: '/settings/users', label: 'Users', adminOnly: true },
+        { href: '/settings/activity', label: 'Activity log', adminOnly: true },
       ],
       adminOnly: true,
     },
