@@ -30,19 +30,29 @@
   let fileInput;
 
   $effect(() => {
-    if (projectId) loadProject();
+    if (!projectId) return;
+    // Cross-project navigation: clear state so we get the loading spinner
+    if (project && project.id !== projectId) {
+      project = null;
+    }
+    loadProject();
   });
 
   async function loadProject() {
-    loading = true;
+    // Only show the full-page spinner on the first load. On refresh, keep
+    // the current view rendered so we don't flash an empty state while the
+    // new data is fetched.
+    const isFirstLoad = !project;
+    if (isFirstLoad) loading = true;
     try {
-      project = await api.get(`/collections/${projectId}`);
-      newName = project.name;
-      newDescription = project.description || '';
+      const next = await api.get(`/collections/${projectId}`);
+      project = next;
+      newName = next.name;
+      newDescription = next.description || '';
     } catch {
-      project = null;
+      if (isFirstLoad) project = null;
     } finally {
-      loading = false;
+      if (isFirstLoad) loading = false;
     }
   }
 
@@ -105,9 +115,16 @@
       confirmText: 'Remove',
     });
     if (!ok) return;
-    await api.delete(`/collections/${projectId}/assets/${assetId}`);
-    toast.success(`Removed "${assetTitle}"`);
-    await loadProject();
+    // Optimistically remove from the local list - no full reload, no spinner flash
+    const previous = project.assets;
+    project.assets = project.assets.filter((a) => a.id !== assetId);
+    try {
+      await api.delete(`/collections/${projectId}/assets/${assetId}`);
+      toast.success(`Removed "${assetTitle}"`);
+    } catch (err) {
+      // Roll back on failure
+      project.assets = previous;
+    }
   }
 
   // Upload handlers - upload directly into this project
