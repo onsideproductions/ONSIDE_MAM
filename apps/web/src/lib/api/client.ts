@@ -10,13 +10,19 @@ interface ApiOptions extends RequestInit {
 async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const { silent, ...rest } = options;
 
+  // Only send Content-Type when there's a body. Fastify rejects requests
+  // with content-type: application/json but an empty body.
+  const headers: Record<string, string> = {
+    ...((rest.headers as Record<string, string>) ?? {}),
+  };
+  if (rest.body && !headers['Content-Type'] && !headers['content-type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...rest.headers,
-    },
-    credentials: 'include',
     ...rest,
+    headers,
+    credentials: 'include',
   });
 
   if (
