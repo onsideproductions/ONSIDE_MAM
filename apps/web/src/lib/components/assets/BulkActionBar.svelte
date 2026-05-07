@@ -35,7 +35,7 @@
       assetIds: selectedIds,
     });
     showCollections = false;
-    toast.success(`Added ${result.added} ${result.added === 1 ? 'asset' : 'assets'} to ${collection?.name ?? 'collection'}`);
+    toast.success(`Added ${result.added} ${result.added === 1 ? 'asset' : 'assets'} to ${collection?.name ?? 'project'}`);
     onChange();
   }
 
@@ -80,7 +80,7 @@
     <span class="w-px h-6 bg-gray-700"></span>
 
     {#if canEdit}
-      <!-- Add to collection -->
+      <!-- Add to project -->
       <div class="relative">
         <button
           onclick={() => { showCollections = !showCollections; showTagInput = false; ensureCollections(); }}
@@ -89,14 +89,14 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
           </svg>
-          Add to collection
+          Add to project
         </button>
         {#if showCollections}
           <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
           <div class="fixed inset-0 z-40" onclick={close}></div>
           <div class="absolute bottom-full mb-2 left-0 w-64 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 z-50 max-h-72 overflow-y-auto">
             {#if !allCollections.length}
-              <div class="p-4 text-sm text-center text-gray-500">No collections yet</div>
+              <div class="p-4 text-sm text-center text-gray-500">No projects yet</div>
             {:else}
               {#each allCollections as col}
                 <button

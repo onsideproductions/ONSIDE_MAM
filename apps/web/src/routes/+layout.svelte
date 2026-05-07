@@ -90,40 +90,29 @@
         </a>
         <nav class="flex items-center gap-1">
           <a
-            href="/assets"
+            href="/"
             class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors
-              {isActive('/assets')
+              {$page.url.pathname === '/' || isActive('/projects')
                 ? 'bg-gray-800 text-gray-100'
                 : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800/60'}"
           >
-            Assets
+            Projects
           </a>
           <a
-            href="/collections"
+            href="/search"
             class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors
-              {isActive('/collections')
+              {isActive('/search')
                 ? 'bg-gray-800 text-gray-100'
                 : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800/60'}"
           >
-            Collections
+            Search
           </a>
-          {#if canUpload}
-            <a
-              href="/upload"
-              class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors
-                {isActive('/upload')
-                  ? 'bg-gray-800 text-gray-100'
-                  : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800/60'}"
-            >
-              Upload
-            </a>
-          {/if}
         </nav>
       </div>
 
       <div class="flex items-center gap-4">
         <!-- Search bar -->
-        <form action="/assets" method="get" class="relative">
+        <form action="/search" method="get" class="relative">
           <input
             type="search"
             name="q"

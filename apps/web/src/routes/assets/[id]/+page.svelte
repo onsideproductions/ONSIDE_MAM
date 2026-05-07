@@ -348,14 +348,14 @@
           {/if}
         </div>
 
-        <!-- Collections -->
+        <!-- Projects -->
         <div>
-          <h3 class="text-sm font-semibold mb-2">Collections</h3>
+          <h3 class="text-sm font-semibold mb-2">Projects</h3>
           {#if asset.collections?.length}
             <div class="flex flex-wrap gap-1.5 mb-2">
               {#each asset.collections as col}
                 <a
-                  href="/collections/{col.id}"
+                  href="/projects/{col.id}"
                   class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950 hover:text-blue-700 dark:hover:text-blue-400 rounded-full transition-colors"
                 >
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -366,7 +366,7 @@
               {/each}
             </div>
           {:else}
-            <p class="text-xs text-gray-500 mb-2">Not in any collection</p>
+            <p class="text-xs text-gray-500 mb-2">Not in any project</p>
           {/if}
           {#if $auth.user?.role === 'admin' || $auth.user?.role === 'editor'}
             <AddToCollection

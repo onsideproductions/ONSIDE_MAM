@@ -68,7 +68,7 @@
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
     </svg>
-    Add to collection
+    Add to project
   </button>
 
   {#if isOpen}
@@ -79,7 +79,7 @@
         <form onsubmit={(e) => { e.preventDefault(); createAndAdd(); }} class="p-3 space-y-2">
           <input
             bind:value={newName}
-            placeholder="Collection name"
+            placeholder="Project name"
             class="w-full px-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             autofocus
           />
@@ -96,7 +96,7 @@
         <div class="p-2 border-b border-gray-200 dark:border-gray-800">
           <input
             bind:value={search}
-            placeholder="Search collections..."
+            placeholder="Search projects..."
             class="w-full px-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -106,7 +106,7 @@
             <div class="p-4 text-center text-sm text-gray-500">Loading…</div>
           {:else if !filtered.length}
             <div class="p-4 text-center text-sm text-gray-500">
-              {search ? 'No matches' : 'No other collections'}
+              {search ? 'No matches' : 'No other projects'}
             </div>
           {:else}
             {#each filtered as col}
@@ -130,7 +130,7 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          New collection…
+          New project…
         </button>
       {/if}
     </div>

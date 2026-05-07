@@ -49,7 +49,7 @@
       </div>
 
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <p class="text-xs uppercase tracking-wider text-gray-500 mb-2">Collections</p>
+        <p class="text-xs uppercase tracking-wider text-gray-500 mb-2">Projects</p>
         <p class="text-3xl font-semibold">{usage.collections}</p>
         <p class="text-xs text-gray-500 mt-3">Folders &amp; sub-folders organising your assets</p>
       </div>
